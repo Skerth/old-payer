@@ -1,0 +1,17 @@
+<?php
+function payer_page_alter(&$page) {
+
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function payer_form_alter(&$form) {
+  if(isset($form['events_pay_wallet'])) {
+    if(!user_access('administer users')) {
+      // Ограничение доступа к полю, если пользователь не имеет прав на
+      // редактирование пользователей
+      $form['events_pay_wallet']['#access'] = FALSE;
+    }
+  }
+}

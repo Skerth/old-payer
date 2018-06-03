@@ -1,0 +1,181 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Payer.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function payer_install() {
+  // Create node type Events pay
+  $payer_node_type = 'events_pay';
+  variable_set('payer_node_type', $payer_node_type);
+
+  $events_pay_type = array(
+    'type' => $payer_node_type,
+    'name' => st('Events pay'),
+    'base' => 'node_content',
+    'custom' => TRUE,
+    'modified' => TRUE,
+    'locked' => FALSE,
+  );
+
+  $events_pay_type = node_type_set_defaults($events_pay_type);
+  node_type_save($events_pay_type);
+
+  // Disable comments by default on Events pay nodes.
+  variable_set('comment_'.$payer_node_type, '0');
+
+  // Create fields for Events pay
+  // Create field Act
+  field_create_field(
+    array(
+      'field_name' => $payer_node_type.'_act',
+      'type' => 'list_text',
+      'cardinality' => 1,
+      'settings' => array(
+        'allowed_values' => array(
+          0 => 'Spending',
+          1 => 'Coming',
+        ),
+      ),
+    )
+  );
+
+  // Create instance Act
+  field_create_instance(
+    array(
+      'entity_type' => 'node',
+      'bundle' => $payer_node_type,
+      'field_name' => $payer_node_type.'_act',
+      'label' => 'Act',
+      'widget' => array('type' => 'options_select'),
+    )
+  );
+
+  // Create field Status
+  field_create_field(
+    array(
+      'field_name' => $payer_node_type.'_status',
+      'type' => 'list_text',
+      'cardinality' => 1,
+      'settings' => array(
+        'allowed_values' => array(
+          0 => 'Failed',
+          1 => 'Completed',
+          2 => 'Created',
+          3 => 'Cancelled',
+          4 => 'Expired',
+        ),
+      ),
+    )
+  );
+
+  // Create instance Status
+  field_create_instance(
+    array(
+      'entity_type' => 'node',
+      'bundle' => $payer_node_type,
+      'field_name' => $payer_node_type.'_status',
+      'label' => 'Status',
+      'widget' => array('type' => 'options_select'),
+    )
+  );
+
+  // Create field Amount
+  field_create_field(
+    array(
+      'field_name' => $payer_node_type.'_amount',
+      'type' => 'number_float',
+      'cardinality' => 1,
+    )
+  );
+
+  // Create instance Amount
+  field_create_instance(
+    array(
+      'field_name' => $payer_node_type.'_amount',
+      'entity_type' => 'node',
+      'bundle' => $payer_node_type,
+      'label' => 'Amount',
+      'widget' => array(
+        'type' => 'number',
+      ),
+      'settings' => array(
+        'text_processing' => TRUE,
+        'min' => 0,
+        'decimal_separator' => '.',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'number_float',
+        ),
+      ),
+    )
+  );
+
+  // Create field Wallet
+  field_create_field(
+    array(
+      'field_name' => $payer_node_type.'_wallet',
+      'type' => 'number_float',
+      'cardinality' => 1,
+    )
+  );
+
+  // Create instance Wallet
+  field_create_instance(
+    array(
+      'field_name' => $payer_node_type.'_wallet',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Wallet',
+      'widget' => array(
+        'type' => 'number',
+      ),
+      'settings' => array(
+        'text_processing' => TRUE,
+        'min' => 0,
+        'decimal_separator' => '.',
+      ),
+      'display' => array(
+        'default' => array(
+          'type' => 'number_float',
+        ),
+      ),
+      'default_value' => array(
+        array(
+          'value' => 0
+        )
+      )
+    )
+  );
+
+}
+
+/**
+ * Implements hook_disable().
+ */
+function payer_uninstall() {
+  $payer_node_type = variable_get('payer_node_type');
+  variable_del('payer_node_type');
+
+  // Delete the content type "payer_node_type" if:
+  //   a) there are no existing nodes of type payer_node_type and
+  //   b) no additional fields have been defined for node type payer_node_type, beyond
+  //      the default body field.
+  $query = new EntityFieldQuery();
+  $results = $query->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', $payer_node_type)
+    ->range(0, 1)
+    ->execute();
+  $instances = field_info_instances('node', $payer_node_type);
+  unset($instances['body']);
+  if (!$results && !$instances) {
+    node_type_delete($payer_node_type);
+    drupal_flush_all_caches();
+  }
+  drupal_flush_all_caches();
+}
