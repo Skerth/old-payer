@@ -6,21 +6,83 @@
 function payer_menu() {
   $items = [];
 
-  // Тестовая страница модуля с кнопкой создать платежку.
-/*  $items['admin/config/payer/test'] = [
-    'title' => 'Payer test',
-    'page callback' => 'payer_page_test',
+  $items['admin/config/payer'] = array(
+    'title' => 'Payer',
+    'description' => 'Configure settings Payer.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'payer_config_page',
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
-    'file' => 'handlers/test-form.inc',
-    'description' => 'Тестовая страница для создания счетов',
-  ];*/
+  );
 
   return $items;
 }
 
-function payer_page_alter(&$page) {
+/**
+ * Обработчик страницы конфигурации модуля Payer
+ **/
+function payer_config_page() {
+  $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
+  $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
 
+  $rows = array();
+  $headers = array(
+    array('style' => array('width:20px')),
+    array('data' => 'Method'),
+    array('data' => 'Operations'),
+  );
+
+  foreach($existing_methods as $pay_method) {
+    $config_link = NULL;
+    $info = drupal_parse_info_file($pay_method->uri);
+    $method_name = $pay_method->name;
+    $enabled = module_exists($method_name) ? TRUE : FALSE;
+    $description = '<h3>' . $info['name'] . '</h3>';
+    $description .= '<p>' . $info['description'] . '</p>';
+
+    if(!$enabled) {
+      $description .= '<p>Способ оплаты <b>"' . $info['name'] . '"</b> установлен, но выключен. Чтобы воспользоваться функционалом модуля, включите его на странице <a href="/admin/modules">модулей</a> в разделе <b>"Payment"</b>.</p>';
+      $enabled = '🚫';
+    }
+    else {
+      $enabled = '✅';
+      $config_link = l('Config', $info['configure']);
+    }
+
+    $rows[$method_name]['data'] = array(
+      $enabled,
+      $description,
+      $config_link,
+    );
+  }
+
+  $page_data = array(
+    'header'     => $headers,
+    'rows'       => $rows,
+    'sticky'     => TRUE,
+    'empty'      => t('No results found'),
+    'attributes' => array(),
+    'caption'    => FALSE,
+    'colgroups'  => array(),
+  );
+
+  return theme(
+    'config_page_template',
+    array('page_data' => $page_data)
+  );
+}
+
+/**
+ * Implement hook_theme().
+ */
+function payer_theme(){
+  return array(
+    'config_page_template' => array(
+      // file name will be payer-config.tpl.php
+      'template' => 'templates/payer-config',
+      'variables' => array('page_data' => NULL),
+    ),
+  );
 }
 
 /**
@@ -40,6 +102,7 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
       $form['title']['#disabled'] = TRUE;
       $form['events_pay_act']['#disabled'] = TRUE;
       $form['events_pay_amount']['#disabled'] = TRUE;
+      $form['events_pay_comment']['#disabled'] = TRUE;
       $form['actions']['submit']['#access'] = FALSE;
     }
   }
@@ -53,9 +116,10 @@ function payer_validate_event_pay_node($form, &$form_state) {
   $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
   $user = user_load_by_name($form_state['values']['name']);
   $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
+  $amount_wallet = $amount_wallet[0]['value'];
 
-  if ($act == 0 && ($amount_wallet[0]['value'] - $amount) < 0) {
-    form_set_error('events_pay_amount', t('У пользовтеля не хватает денег в кошельке!'));
+  if (isset($amount) && $act == 0 && ($amount_wallet - $amount) < 0) {
+    form_set_error('events_pay_amount', t('Недостаточно средств!'));
   }
 }
 
@@ -68,8 +132,9 @@ function payer_create_event_pay_node($form, &$form_state) {
     'uid' => $user->uid,
     'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
     'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
+    'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
   );
 
-  //$test = new Payer($vars);
-  //$test->handler_event_pay();
+  $event = new Payer($vars);
+  $event->handler_event_pay();
 }
