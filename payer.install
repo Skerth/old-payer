@@ -49,7 +49,7 @@ function payer_install() {
       'entity_type' => 'node',
       'bundle' => $payer_node_type,
       'field_name' => $payer_node_type.'_act',
-      'required ' => TRUE,
+      'required' => TRUE,
       'label' => 'Act',
       'widget' => array('type' => 'options_select'),
     )
@@ -70,7 +70,7 @@ function payer_install() {
       'entity_type' => 'node',
       'bundle' => $payer_node_type,
       'label' => 'Amount',
-      'required ' => TRUE,
+      'required' => TRUE,
       'widget' => array(
         'type' => 'number',
       ),
