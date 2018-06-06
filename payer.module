@@ -7,11 +7,11 @@ function payer_menu() {
   $items = [];
 
   $items['admin/config/payer'] = array(
-    'title' => 'Payer',
-    'description' => 'Configure settings Payer.',
-    'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'payer_config_page',
-    'access callback' => 'user_access',
+    'title'            => 'Payer',
+    'description'      => 'Configure settings Payer.',
+    'type'             => MENU_NORMAL_ITEM,
+    'page callback'    => 'payer_config_page',
+    'access callback'  => 'user_access',
     'access arguments' => array('administer site configuration'),
   );
 
@@ -23,39 +23,80 @@ function payer_menu() {
  **/
 function payer_config_page() {
   $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
+
+  // Поиск файлов .info по указанному пути.
   $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
 
-  $rows = array();
+  // Шапка таблицы с контентом
   $headers = array(
     array('style' => array('width:20px')),
-    array('data' => 'Method'),
-    array('data' => 'Operations'),
+    array('data'  => 'Method'),
+    array('data'  => 'Operations'),
   );
 
-  foreach($existing_methods as $pay_method) {
-    $config_link = NULL;
-    $info = drupal_parse_info_file($pay_method->uri);
-    $method_name = $pay_method->name;
-    $enabled = module_exists($method_name) ? TRUE : FALSE;
-    $description = '<h3>' . $info['name'] . '</h3>';
-    $description .= '<p>' . $info['description'] . '</p>';
+  // Строки таблицы с контентом
+  $rows = array();
 
-    if(!$enabled) {
-      $description .= '<p>Способ оплаты <b>"' . $info['name'] . '"</b> установлен, но выключен. Чтобы воспользоваться функционалом модуля, включите его на странице <a href="/admin/modules">модулей</a> в разделе <b>"Payment"</b>.</p>';
-      $enabled = '🚫';
+  /**
+   * Подготовка информации о имеющихся способах оплаты в папке "methods"
+   */
+  foreach($existing_methods as $pay_method) {
+    $options = array(
+      'config_link' => NULL, // ссылка на конфиг метода оплаты.
+      'method_name' => NULL, // системное название метода.
+      'description' => NULL, // описание метода.
+      'image'       => NULL, // изображение.
+      'info'        => NULL, // информация, содержащаяся в файле .info
+      'enabled'     => FALSE, // Флаг активности модуля
+    );
+
+    $options['info'] = drupal_parse_info_file($pay_method->uri);
+    $options['method_name'] = $pay_method->name;
+    $options['enabled'] = module_exists($options['method_name']) ? TRUE : FALSE;
+
+    if(!$options['enabled']) {
+      $options['description'] .= '<div class="messages warning">';
+      $options['description'] .= t('The payment method "@pay_method" is 
+        installed, but it is off. To use the module functionality, 
+        enable it on the !page_modules under "Payment"',
+        array(
+          '@pay_method' => $options['info']['name'],
+          '!page_modules' => l(t('modules page'), 'admin/modules'),
+        )
+      );
+      $options['description'] .= '</div>';
+      $options['enabled'] = '🚫';
     }
     else {
-      $enabled = '✅';
-      $config_link = l('Config', $info['configure']);
+      $options['config_link'] = l('Config', $options['info']['configure']);
+      $options['enabled'] = '✅';
     }
 
-    $rows[$method_name]['data'] = array(
-      $enabled,
-      $description,
-      $config_link,
+    $options['image'] = drupal_get_path('module', $options['method_name']) .'/preview.png';
+
+    if(file_exists($options['image'])) {
+      $options['image'] = theme('image', array('path' => $options['image']));
+    }
+    else {
+      $options['image'] = NULL;
+    }
+
+    $options['description'] .= '<h3>' . $options['info']['name'] . '</h3>';
+    $options['description'] .= theme('default', array());;
+    $options['description'] .= $options['image'];
+    $options['description'] .= '<p>' . $options['info']['description'] . '</p>';
+
+    // Добавление вычесленных данных в массив $rows
+    $rows[$options['method_name']] = array(
+      'data' => array(
+        $options['enabled'],
+        $options['description'],
+        $options['config_link'],
+      ),
     );
   }
 
+  // Сборка данных для страницы
   $page_data = array(
     'header'     => $headers,
     'rows'       => $rows,
@@ -79,7 +120,7 @@ function payer_theme(){
   return array(
     'config_page_template' => array(
       // file name will be payer-config.tpl.php
-      'template' => 'templates/payer-config',
+      'template'  => 'templates/payer-config',
       'variables' => array('page_data' => NULL),
     ),
   );
@@ -94,11 +135,14 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
       !isset($form['#node']->events_pay_act)
       && !isset($form['#node']->events_pay_amount)) {
       unset($form['title']);
+
+      // Добавление валидации
       $form['#validate'][] = 'payer_validate_event_pay_node';
+      // Полностью заменяем стандартный обработчик формы
       $form['actions']['submit']['#submit'] = array('payer_create_event_pay_node');
     }
     else {
-      drupal_set_message('Вы не можете редактировать уже созданное событие');
+      drupal_set_message(t('You can not edit an already created event'));
       $form['title']['#disabled'] = TRUE;
       $form['events_pay_act']['#disabled'] = TRUE;
       $form['events_pay_amount']['#disabled'] = TRUE;
@@ -129,9 +173,9 @@ function payer_validate_event_pay_node($form, &$form_state) {
 function payer_create_event_pay_node($form, &$form_state) {
   $user = user_load_by_name($form_state['values']['name']);
   $vars = array(
-    'uid' => $user->uid,
-    'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
-    'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
+    'uid'     => $user->uid,
+    'act'     => $form_state['values']['events_pay_act']['und'][0]['value'],
+    'amount'  => $form_state['values']['events_pay_amount']['und'][0]['value'],
     'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
   );
 
