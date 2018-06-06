@@ -2,7 +2,7 @@
 
 class Payer {
   /**
-   * Загруженный Drupal объект пользователя
+   * Объект пользователя Drupal
    **/
   private $user;
 
@@ -73,10 +73,10 @@ class Payer {
     if ($this->calc_wallet >= 0) {
       $this->create_event_pay_node();
       $this->set_user_calc_wallet();
-      drupal_set_message('Payment performed!');
+      drupal_set_message('Платеж совершен!');
     }
     else {
-      drupal_set_message('No monet - no honey!');
+      drupal_set_message('Недостаточно средств!');
     }
   }
 
@@ -92,6 +92,7 @@ class Payer {
     $node->uid = $this->user->uid;
     $node->events_pay_act[$node->language][0]['value'] = $this->act;
     $node->events_pay_amount[$node->language][0]['value'] = $this->amount;
+    $node->events_pay_comment[$node->language][0]['value'] = $this->comment;
     $node->status = 1;
     if ($node = node_submit($node)) {
       try {
