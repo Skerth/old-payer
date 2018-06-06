@@ -1,4 +1,24 @@
 <?php
+
+/**
+ * Implements hook_menu().
+ */
+function payer_menu() {
+  $items = [];
+
+  // Тестовая страница модуля с кнопкой создать платежку.
+/*  $items['admin/config/payer/test'] = [
+    'title' => 'Payer test',
+    'page callback' => 'payer_page_test',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'handlers/test-form.inc',
+    'description' => 'Тестовая страница для создания счетов',
+  ];*/
+
+  return $items;
+}
+
 function payer_page_alter(&$page) {
 
 }
@@ -6,12 +26,50 @@ function payer_page_alter(&$page) {
 /**
  * Implements hook_form_alter().
  */
-function payer_form_alter(&$form) {
-  if(isset($form['events_pay_wallet'])) {
-    if(!user_access('administer users')) {
-      // Ограничение доступа к полю, если пользователь не имеет прав на
-      // редактирование пользователей
-      $form['events_pay_wallet']['#access'] = FALSE;
+function payer_form_alter(&$form, &$form_state, $form_id) {
+  if($form_id == 'events_pay_node_form') {
+    if(
+      !isset($form['#node']->events_pay_act)
+      && !isset($form['#node']->events_pay_amount)) {
+      unset($form['title']);
+      $form['#validate'][] = 'payer_validate_event_pay_node';
+      $form['actions']['submit']['#submit'] = array('payer_create_event_pay_node');
+    }
+    else {
+      drupal_set_message('Вы не можете редактировать уже созданное событие');
+      $form['title']['#disabled'] = TRUE;
+      $form['events_pay_act']['#disabled'] = TRUE;
+      $form['events_pay_amount']['#disabled'] = TRUE;
+      $form['actions']['submit']['#access'] = FALSE;
     }
   }
+}
+
+/**
+ * Валидация формы создания типа материала "events_pay"
+ **/
+function payer_validate_event_pay_node($form, &$form_state) {
+  $act = $form_state['values']['events_pay_act']['und'][0]['value'];
+  $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
+  $user = user_load_by_name($form_state['values']['name']);
+  $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
+
+  if ($act == 0 && ($amount_wallet[0]['value'] - $amount) < 0) {
+    form_set_error('events_pay_amount', t('У пользовтеля не хватает денег в кошельке!'));
+  }
+}
+
+/**
+ * Обработчик формы создания типа материала "events_pay" после валидации
+ **/
+function payer_create_event_pay_node($form, &$form_state) {
+  $user = user_load_by_name($form_state['values']['name']);
+  $vars = array(
+    'uid' => $user->uid,
+    'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
+    'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
+  );
+
+  //$test = new Payer($vars);
+  //$test->handler_event_pay();
 }
