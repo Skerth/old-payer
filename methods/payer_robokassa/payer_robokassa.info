@@ -1,5 +1,5 @@
 name = Robokassa
-description = Robokassa gate.
+description = ROBOKASSA is a service which helps Merchants (online stores or service providers) accept payments from bank cards, in any e-currency, through mobile commerce services (MTS, Megafon, Beeline), online banking systems of leading Banks in Russia, ATMs or instant payment terminals, and iPhone applications. <a href="https://docs.robokassa.ru/en/">Developers documentation</a>.
 core = 7.x
 version = "7.x-1.0"
 package = "Payment"
