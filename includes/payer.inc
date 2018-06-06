@@ -60,7 +60,8 @@ class Payer {
   }
 
   /**
-   * Обработчик события с кошельком пользователя
+   * Обработчик события с кошельком пользователя.
+   * Тут нужно расширить функционал обработчиком ошибок и исключений
    **/
   public function handler_event_pay() {
     if ($this->act == 0) {
@@ -73,15 +74,15 @@ class Payer {
     if ($this->calc_wallet >= 0) {
       $this->create_event_pay_node();
       $this->set_user_calc_wallet();
-      drupal_set_message('Платеж совершен!');
+      drupal_set_message(t('Event successfully created'));
     }
     else {
-      drupal_set_message('Недостаточно средств!');
+      drupal_set_message(t('Insufficient funds!'), 'warning');
     }
   }
 
   /**
-   * Создание события прихода или расхода
+   * Создание события прихода или расхода средств
    **/
   private function create_event_pay_node() {
     $node = new stdClass();
@@ -105,7 +106,7 @@ class Payer {
   }
 
   /**
-   * Записывает вычисленное значение "$this->calc_wallet" в базу
+   * Запись вычисленного значения "$this->calc_wallet" в базу
    **/
   private function set_user_calc_wallet() {
     $this->user->payer_wallet['und'][0]['value'] = $this->calc_wallet;
@@ -120,7 +121,7 @@ class Payer {
   }
 
   /**
-   * Получает количество материалов типа "events_pay" в базе
+   * Получение количества материалов типа "events_pay" в базе
    **/
   private function get_amount_events_pay() {
     return db_select('node', 'n')
@@ -131,7 +132,7 @@ class Payer {
   }
 
   /**
-   * Получает количество денег в кошельке пользователя
+   * Получение количества денег в кошельке пользователя
    **/
   private function get_user_amount_wallet() {
     $amount_wallet = field_get_items( 'user' , $this->user, 'payer_wallet' );
