@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function payer_free_kassa_menu() {
+  $items = [];
+
+  $items['admin/config/payer/free-kassa'] = array(
+    'title' => 'Free kassa',
+    'description' => 'Configure settings Payer Free kassa.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'payer_free_kassa_config_page',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+function payer_free_kassa_config_page() {
+  return '1';
+}

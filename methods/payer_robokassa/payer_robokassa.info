@@ -1,0 +1,11 @@
+name = Robokassa
+description = Robokassa gate.
+core = 7.x
+version = "7.x-1.0"
+package = "Payment"
+dependencies[] = payer
+
+configure = admin/config/payer/robokassa
+
+files[] = robokassa.module
+files[] = robokassa.inc
