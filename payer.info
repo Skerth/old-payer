@@ -8,6 +8,8 @@ dependencies[] = number
 dependencies[] = list
 dependencies[] = views
 
+configure = admin/config/payer
+
 files[]= payer.install
 files[]= payer.module
 
