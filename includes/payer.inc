@@ -125,11 +125,14 @@ class Payer {
    * Получение количества материалов типа "events_pay" в базе
    **/
   private function get_amount_events_pay() {
-    return db_select('node', 'n')
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid', 'title'))
       ->condition('n.type', 'events_pay')
-      ->countQuery()
+      ->orderBy('nid', 'DESC')
       ->execute()
-      ->fetchField();
+      ->fetchAssoc();
+
+    return (int)$query['title'];
   }
 
   /**
