@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function payer_yandex_kassa_menu() {
+  $items = [];
+
+  $items['admin/config/payer/yandex-kassa'] = array(
+    'title' => 'Yandex Kassa',
+    'description' => 'Configure settings Payer Yandex Kassa.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'payer_yandex_kassa_config_page',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+  );
+
+  return $items;
+}
+
+function payer_yandex_kassa_config_page() {
+  return 'Yandex Kassa';
+}
