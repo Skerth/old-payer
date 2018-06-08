@@ -8,7 +8,7 @@ function payer_free_kassa_menu() {
 
   $items['admin/config/payer/free-kassa'] = array(
     'title' => 'Free kassa',
-    'description' => 'Configure settings Payer Free kassa.',
+    'description' => 'Configure settings Payer Free Kassa.',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'payer_free_kassa_config_page',
     'access callback' => 'user_access',
@@ -19,5 +19,5 @@ function payer_free_kassa_menu() {
 }
 
 function payer_free_kassa_config_page() {
-  return '1';
+  return 'Free Kassa';
 }

@@ -6,5 +6,3 @@ package = "Payment"
 dependencies[] = payer
 
 configure = admin/config/payer/free-kassa
-
-files[] = free_kassa.inc
