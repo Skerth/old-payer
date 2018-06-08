@@ -38,6 +38,7 @@ class Payer {
   private $comment = NULL;
 
   public function __construct($vars) {
+    // Если uid не был передан загружаем текущего пользователя
     if (!isset($vars['uid'])){
       global $user;
       $uid = $user->uid;
