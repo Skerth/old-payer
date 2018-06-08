@@ -10,7 +10,8 @@ function payer_robokassa_menu() {
     'title' => 'Robokassa',
     'description' => 'Configure settings Payer robokassa.',
     'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'payer_robokassa_config_page',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_robokassa_settings'),
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
   );
@@ -18,6 +19,115 @@ function payer_robokassa_menu() {
   return $items;
 }
 
-function payer_robokassa_config_page() {
-  return 'Robokassa';
+function payer_robokassa_settings($form) {
+  $image = drupal_get_path('module', 'payer_robokassa') . '/preview.png';
+  if(file_exists($image)) {
+    $form['#prefix'] = theme('image', array('path' => $image));
+  }
+
+  $form['main_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Main settings'),
+    '#description' => t('Main settings for Robokassa payment gateway'),
+    '#weight' => 1,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+  );
+
+  $form['main_settings']['payer_robokassa_merchant_login'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Merchant login'),
+    '#description' => t('Paste the store ID here'),
+    '#default_value' => variable_get('payer_robokassa_merchant_login', ''),
+    '#maxlength' => 255,
+  );
+
+  $form['main_settings']['payer_robokassa_password_1'] = array(
+    '#type' => 'password',
+    '#title' => t('Password 1'),
+    '#maxlength' => 64,
+  );
+
+  $form['main_settings']['payer_robokassa_password_2'] = array(
+    '#type' => 'password',
+    '#title' => t('Password 2'),
+    '#maxlength' => 64,
+  );
+
+  $form['main_settings']['urls'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('URL\'s'),
+    '#description' => t('Use a relative path and don\'t add a trailing slash or the URL won\'t work.'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#tree' => FALSE,
+  );
+
+  $form['main_settings']['urls']['payer_robokassa_url_result'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL result'),
+    '#description' => t('It is recommended that you periodically change this URL.'),
+    '#field_prefix' => $_SERVER['SERVER_NAME'] . '/',
+    '#default_value' => variable_get('payer_robokassa_url_result'),
+    '#maxlength' => 255,
+  );
+
+  $form['main_settings']['urls']['payer_robokassa_url_success'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL success'),
+    '#field_prefix' => $_SERVER['SERVER_NAME'] . '/',
+    '#default_value' => variable_get('payer_robokassa_url_success'),
+    '#maxlength' => 255,
+  );
+
+  $form['main_settings']['urls']['payer_robokassa_url_fail'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL fail'),
+    '#field_prefix' => $_SERVER['SERVER_NAME'] . '/',
+    '#default_value' => variable_get('payer_robokassa_url_fail'),
+    '#maxlength' => 255,
+  );
+
+  $form['test_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Test settings'),
+    '#description' => t('Test settings for Robokassa payment gateway'),
+    '#weight' => 1,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#tree' => FALSE,
+  );
+
+  $form['test_settings']['payer_robokassa_test_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable test mode'),
+    '#default_value' => variable_get('payer_robokassa_test_enabled', '0'),
+  );
+
+  $form['test_settings']['payer_robokassa_test_password_1'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Test password 1'),
+    '#default_value' => variable_get('payer_robokassa_test_password_1', ''),
+    '#maxlength' => 255,
+  );
+
+  $form['test_settings']['payer_robokassa_test_password_2'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Test password 2'),
+    '#default_value' => variable_get('payer_robokassa_test_password_2', ''),
+    '#maxlength' => 255,
+  );
+
+  $form = system_settings_form($form);
+
+  $form['#validate'][] = 'payer_robokassa_settings_validate';
+  unset($form['#submit']);
+
+  return $form;
+}
+
+function payer_robokassa_settings_validate($form, &$form_state) {
+
 }
