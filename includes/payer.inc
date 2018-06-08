@@ -89,7 +89,7 @@ class Payer {
     $node = new stdClass();
     $node->type = 'events_pay';
     node_object_prepare($node);
-    $node->title = $this->get_amount_events_pay() + 1;
+    $node->title = $this->get_last_event_number() + 1;
     $node->language = LANGUAGE_NONE;
     $node->uid = $this->user->uid;
     $node->events_pay_act[$node->language][0]['value'] = $this->act;
@@ -124,7 +124,7 @@ class Payer {
   /**
    * Получение количества материалов типа "events_pay" в базе
    **/
-  private function get_amount_events_pay() {
+  private function get_last_event_number() {
     $query = db_select('node', 'n')
       ->fields('n', array('nid', 'title'))
       ->condition('n.type', 'events_pay')
