@@ -6,18 +6,26 @@ class Payer {
    **/
   private $user;
 
+  private $pay_id = NULL;
+
   /**
    * Количество денег на счету пользователя поле "payer_wallet"
    **/
-  private $wallet = NULL;
+  private $score = NULL;
 
   /**
    * Действие с кошельком пользователя:
    *  0 - Расход (списание)
    *  1 - Приход (пополнение)
-   *  2 - Ожидание (счет создан и ожидает оплаты)
    **/
   private $act = NULL;
+
+  /**
+   * Действие с кошельком пользователя:
+   *  0 - Ожидание (счет создан и ожидает оплаты)
+   *  1 - Исполнен (счет исполнен)
+   **/
+  private $status = NULL;
 
   /**
    * Сумма которую необходимо списать или пополнить
@@ -31,7 +39,7 @@ class Payer {
    *   б) при приходе (1) - сумма $wallet и $amount
    * кошелек пользователя
    **/
-  private $calc_wallet = NULL;
+  private $balance = NULL;
 
   /**
    * Комментарий к платежу
@@ -39,19 +47,18 @@ class Payer {
   private $comment = NULL;
 
   public function __construct($vars) {
-    // Если uid не был передан загружаем текущего пользователя
-    if (!isset($vars['uid'])){
-      global $user;
-      $uid = $user->uid;
+    if (isset($vars['uid'])) {
+      $this->user = self::get_user_object($vars['uid']);
+      $this->score = $this->get_user_balance();
     }
-    else {
-      $uid = $vars['uid'];
+    if (isset($vars['pay_id'])){
+      $this->pay_id = $vars['pay_id'];
     }
-    $this->user = user_load($uid);
-    $this->wallet = $this->get_user_amount_wallet();
-
     if (isset($vars['act'])){
       $this->act = $vars['act'];
+    }
+    if (isset($vars['status'])){
+      $this->status = $vars['status'];
     }
     if (isset($vars['amount'])){
       $this->amount = $vars['amount'];
@@ -62,29 +69,148 @@ class Payer {
   }
 
   /**
+   * Получить объект пользователя по uid
+   **/
+  static public function get_user_object($uid = NULL) {
+    // Если uid не был передан загружаем текущего пользователя
+    if (!isset($uid)){
+      global $user;
+      $uid = $user->uid;
+    }
+    return user_load($uid);
+  }
+
+  /**
+   * Вычислить остаток на счету пользователя
+   *
+   * @param $act
+   * @param $score
+   * @param $amount
+   *
+   * @return int - balance
+   */
+  static public function calc_balance_user($act, $score, $amount) {
+    if($act == 0) {
+      $balance = $score - $amount;
+    }
+    else {
+      $balance = $score + $amount;
+    }
+    return $balance;
+  }
+
+  /**
+   * Установить статус материалу
+   * @param $nid
+   * @param $status
+   */
+  static public function set_event_pay_status($pay_id, $status, $nid = NULL) {
+    if(!isset($nid)) {
+      $nid = self::get_event_pay_nid($pay_id);
+    }
+    $node = (object)array(
+      'nid' => $nid,
+      'type' => 'events_pay',
+    );
+
+    $node->events_pay_status['und'][0]['value'] = $status;
+    $field_info = field_info_field('events_pay_status');
+    field_sql_storage_field_storage_write('node', $node, 'update', array($field_info['id']));
+    cache_clear_all("field:node:{$node->nid}", 'cache_field');
+  }
+
+  /**
+   * Получить статус материала
+   * @param $nid
+   * @param $status
+   */
+  static public function get_event_pay_status($pay_id, $nid = NULL) {
+    if(!isset($nid)) {
+      $nid = self::get_event_pay_nid($pay_id);
+    }
+
+    $status = db_select('field_data_events_pay_status', 's')
+      ->fields('s', array('events_pay_status_value'))
+      ->condition('s.entity_id', $nid)
+      ->execute()
+      ->fetchAssoc();
+
+    return $status['events_pay_status_value '];
+  }
+
+  static public function get_event_pay_node($pay_id, $nid = NULL) {
+    if(!isset($nid)) {
+      $nid = self::get_event_pay_nid($pay_id);
+    }
+
+    return node_load($nid);
+  }
+
+  /**
+   * @param $pay_id
+   *
+   * @return int — nid
+   */
+  static public function get_event_pay_nid($pay_id) {
+    $node = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('n.type', 'events_pay')
+      ->condition('n.title', $pay_id)
+      ->execute()
+      ->fetchAssoc();
+
+    return $node['nid'];
+  }
+
+  /**
    * Обработчик события с кошельком пользователя.
    * Тут нужно расширить функционал обработчиком ошибок и исключений,
    * Еще нужно рзабить метод на 4 метода: для рассчета остатка в кошельке
    * и создания счета в ожидании
    **/
   public function handler_event_pay() {
-    if ($this->act == 0) {
-      $this->calc_wallet = $this->wallet - $this->amount;
-    }
-    else {
-      $this->calc_wallet = $this->wallet + $this->amount;
-    }
+    if(!isset($this->pay_id)){
+      $this->balance = self::calc_balance_user($this->act, $this->score, $this->amount);
 
-    if ($this->calc_wallet >= 0) {
-      $this->create_event_pay_node();
-      $this->set_user_calc_wallet();
-      drupal_set_message(t('Event successfully created'));
+      // если id платежа не передан, создаем событие
+      if ($this->balance >= 0) {
+        $this->create_event_pay_node();
+
+        if($this->status == 1) {
+          $this->set_user_balance();
+        }
+        drupal_set_message(t('Event successfully created'));
+      }
+      else {
+        drupal_set_message(t('Insufficient funds!'), 'warning');
+      }
     }
     else {
-      drupal_set_message(t('Insufficient funds!'), 'warning');
+      if ($this->status == 1) {
+        // если id платежа передан, нужно поменять ему статус и записать сумму на баланс пользователя
+        $node = self::get_event_pay_node($this->pay_id);
+        $this->act = $node->events_pay_act['und'][0]['value'];
+        $this->amount = $node->events_pay_amount['und'][0]['value'];
+        $this->user = self::get_user_object($node->uid);
+        $this->score = $this->get_user_balance();
+        $this->balance = self::calc_balance_user($this->act, $this->score, $this->amount);
+
+        self::set_event_pay_status('', $this->status, $node->nid);
+        $this->set_user_balance();
+
+        drupal_set_message(t('Event "@pay_id" is "@status". @act = @amount. Current user balance @balance', array(
+          '@pay_id' => $this->pay_id,
+          '@status' => $this->status?'Completed':FALSE,
+          '@act' => $this->act?'Coming':'Spending',
+          '@amount' => $this->amount,
+          '@balance' => $this->balance,
+        )));
+      }
+      else {
+        drupal_set_message(t('Оплата существует, но статус не корректный: "Ожидание"!'), 'warning');
+      }
     }
   }
-
   /**
    * Создание события прихода или расхода средств
    **/
@@ -96,6 +222,7 @@ class Payer {
     $node->language = LANGUAGE_NONE;
     $node->uid = $this->user->uid;
     $node->events_pay_act[$node->language][0]['value'] = $this->act;
+    $node->events_pay_status[$node->language][0]['value'] = $this->status;
     $node->events_pay_amount[$node->language][0]['value'] = $this->amount;
     $node->events_pay_comment[$node->language][0]['value'] = $this->comment;
     $node->status = 1;
@@ -110,10 +237,10 @@ class Payer {
   }
 
   /**
-   * Запись вычисленного значения "$this->calc_wallet" в базу
+   * Запись вычисленного значения "$this->balance" в базу
    **/
-  private function set_user_calc_wallet() {
-    $this->user->payer_wallet['und'][0]['value'] = $this->calc_wallet;
+  private function set_user_balance() {
+    $this->user->payer_wallet['und'][0]['value'] = $this->balance;
     $field_info = field_info_field('payer_wallet');
     field_sql_storage_field_storage_write(
       'user',
@@ -141,8 +268,11 @@ class Payer {
   /**
    * Получение количества денег в кошельке пользователя
    **/
-  private function get_user_amount_wallet() {
+  private function get_user_balance() {
     $amount_wallet = field_get_items( 'user' , $this->user, 'payer_wallet' );
+    if(empty($amount_wallet[0]['value'])) {
+      $amount_wallet[0]['value'] = 0;
+    }
     return $amount_wallet[0]['value'];
   }
 }
