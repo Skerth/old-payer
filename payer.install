@@ -39,6 +39,7 @@ function payer_install() {
         'allowed_values' => array(
           0 => 'Spending',
           1 => 'Arrival',
+          2 => 'Waiting',
         ),
       ),
     )
