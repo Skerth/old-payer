@@ -9,12 +9,8 @@
  * Implements hook_install().
  */
 function payer_install() {
-  // Create node type Events pay
-  $payer_node_type = 'events_pay';
-  variable_set('payer_node_type', $payer_node_type);
-
   $events_pay_type = array(
-    'type' => $payer_node_type,
+    'type' => 'events_pay',
     'name' => st('Events pay'),
     'base' => 'node_content',
     'custom' => TRUE,
@@ -26,20 +22,19 @@ function payer_install() {
   node_type_save($events_pay_type);
 
   // Disable comments by default on Events pay nodes.
-  variable_set('comment_'.$payer_node_type, '0');
+  variable_set('comment_events_pay', '0');
 
   // Create fields for Events pay
   // Create node field Act
   field_create_field(
     array(
-      'field_name' => $payer_node_type.'_act',
+      'field_name' => 'events_pay_act',
       'type' => 'list_text',
       'cardinality' => 1,
       'settings' => array(
         'allowed_values' => array(
-          0 => 'Spending',
-          1 => 'Arrival',
-          2 => 'Waiting',
+          0 => st('Spending'),
+          1 => st('Coming'),
         ),
       ),
     )
@@ -48,10 +43,36 @@ function payer_install() {
   field_create_instance(
     array(
       'entity_type' => 'node',
-      'bundle' => $payer_node_type,
-      'field_name' => $payer_node_type.'_act',
+      'bundle' => 'events_pay',
+      'field_name' => 'events_pay_act',
       'required' => TRUE,
-      'label' => 'Act',
+      'label' => st('Act'),
+      'widget' => array('type' => 'options_select'),
+    )
+  );
+
+  // Create node field Status
+  field_create_field(
+    array(
+      'field_name' => 'events_pay_status',
+      'type' => 'list_text',
+      'cardinality' => 1,
+      'settings' => array(
+        'allowed_values' => array(
+          0 => st('Waiting'),
+          1 => st('Completed'),
+        ),
+      ),
+    )
+  );
+  // Create instance Status
+  field_create_instance(
+    array(
+      'entity_type' => 'node',
+      'bundle' => 'events_pay',
+      'field_name' => 'events_pay_status',
+      'required' => TRUE,
+      'label' => st('Status'),
       'widget' => array('type' => 'options_select'),
     )
   );
@@ -59,7 +80,7 @@ function payer_install() {
   // Create node field Amount
   field_create_field(
     array(
-      'field_name' => $payer_node_type.'_amount',
+      'field_name' => 'events_pay_amount',
       'type' => 'number_float',
       'cardinality' => 1,
     )
@@ -67,10 +88,10 @@ function payer_install() {
   // Create instance Amount
   field_create_instance(
     array(
-      'field_name' => $payer_node_type.'_amount',
+      'field_name' => 'events_pay_amount',
       'entity_type' => 'node',
-      'bundle' => $payer_node_type,
-      'label' => 'Amount',
+      'bundle' => 'events_pay',
+      'label' => st('Amount'),
       'required' => TRUE,
       'widget' => array(
         'type' => 'number',
@@ -91,7 +112,7 @@ function payer_install() {
   // Create node field Comment
   field_create_field(
     array(
-      'field_name' => $payer_node_type.'_comment',
+      'field_name' => 'events_pay_comment',
       'type' => 'text',
       'cardinality' => 1,
     )
@@ -99,10 +120,10 @@ function payer_install() {
   // Create instance Comment
   field_create_instance(
     array(
-      'field_name' => $payer_node_type.'_comment',
+      'field_name' => 'events_pay_comment',
       'entity_type' => 'node',
-      'bundle' => $payer_node_type,
-      'label' => 'Comment',
+      'bundle' => 'events_pay',
+      'label' => st('Comment'),
       'widget' => array(
         'type' => 'textfield',
       ),
@@ -131,7 +152,7 @@ function payer_install() {
       'field_name' => 'payer_wallet',
       'entity_type' => 'user',
       'bundle' => 'user',
-      'label' => 'Wallet',
+      'label' => st('Wallet'),
       'widget' => array(
         'type' => 'number',
       ),
@@ -152,8 +173,6 @@ function payer_install() {
       )
     )
   );
-  // нужно сделать, чтобы у всех существующих пользователей по умолчанию стал 0 на счету при установке
-  // нужно поле комментарий
 }
 
 /**
