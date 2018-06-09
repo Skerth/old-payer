@@ -141,6 +141,7 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
   if($form_id == 'events_pay_node_form') {
     if(
       !isset($form['#node']->events_pay_act)
+      && !isset($form['#node']->events_pay_status)
       && !isset($form['#node']->events_pay_amount)
     ) {
       unset($form['title']);
@@ -153,6 +154,7 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
       drupal_set_message(t('You can\'t edit an already created event'), 'warning');
       $form['title']['#disabled'] = TRUE;
       $form['events_pay_act']['#disabled'] = TRUE;
+      $form['events_pay_status']['#disabled'] = TRUE;
       $form['events_pay_amount']['#disabled'] = TRUE;
       $form['events_pay_comment']['#disabled'] = TRUE;
       $form['actions']['submit']['#access'] = FALSE;
@@ -165,6 +167,7 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
  **/
 function payer_validate_event_pay_node($form, &$form_state) {
   $act = $form_state['values']['events_pay_act']['und'][0]['value'];
+  $status = $form_state['values']['events_pay_status']['und'][0]['value'];
   $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
   $user = user_load_by_name($form_state['values']['name']);
   $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
@@ -183,6 +186,7 @@ function payer_create_event_pay_node($form, &$form_state) {
   $vars = array(
     'uid' => $user->uid,
     'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
+    'status' => $form_state['values']['events_pay_status']['und'][0]['value'],
     'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
     'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
   );
