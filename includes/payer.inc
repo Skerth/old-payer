@@ -6,7 +6,10 @@ class Payer {
    **/
   private $user;
 
-  private $pay_id = NULL;
+  /**
+   * ID события оплаты, title материала
+   */
+  public $pay_id = NULL;
 
   /**
    * Количество денег на счету пользователя поле "payer_wallet"
@@ -49,7 +52,7 @@ class Payer {
   public function __construct($vars) {
     if (isset($vars['uid'])) {
       $this->user = self::get_user_object($vars['uid']);
-      $this->score = $this->get_user_balance();
+      $this->score = self::get_user_balance($this->user);
     }
     if (isset($vars['pay_id'])){
       $this->pay_id = $vars['pay_id'];
@@ -78,6 +81,80 @@ class Payer {
       $uid = $user->uid;
     }
     return user_load($uid);
+  }
+
+  /**
+   * Получить статус материала
+   * @param $nid
+   * @param $status
+   */
+  static public function get_event_pay_status($pay_id, $nid = NULL) {
+    if(!isset($nid)) {
+      $nid = self::get_event_pay_nid($pay_id);
+    }
+
+    $status = db_select('field_data_events_pay_status', 's')
+      ->fields('s', array('events_pay_status_value'))
+      ->condition('s.entity_id', $nid)
+      ->execute()
+      ->fetchAssoc();
+
+    return $status['events_pay_status_value '];
+  }
+
+  /**
+   * @param $pay_id
+   * @param null $nid
+   *
+   * @return bool|mixed
+   */
+  static public function get_event_pay_node($pay_id, $nid = NULL) {
+    if(!isset($nid)) {
+      $nid = self::get_event_pay_nid($pay_id);
+    }
+
+    return node_load($nid);
+  }
+
+  /**
+   * @param $pay_id
+   *
+   * @return int — nid
+   */
+  static public function get_event_pay_nid($pay_id) {
+    $node = db_select('node', 'n')
+      ->fields('n', array('nid'))
+      ->condition('n.type', 'events_pay')
+      ->condition('n.title', $pay_id)
+      ->execute()
+      ->fetchAssoc();
+
+    return $node['nid'];
+  }
+
+  /**
+   * Получение количества материалов типа "events_pay" в базе
+   **/
+  static public function get_last_event_number() {
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid', 'title'))
+      ->condition('n.type', 'events_pay')
+      ->orderBy('nid', 'DESC')
+      ->execute()
+      ->fetchAssoc();
+
+    return (int)$query['title'];
+  }
+
+  /**
+   * Получение количества денег в кошельке пользователя
+   **/
+  static public function get_user_balance($user) {
+    $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
+    if(empty($amount_wallet[0]['value'])) {
+      $amount_wallet[0]['value'] = 0;
+    }
+    return $amount_wallet[0]['value'];
   }
 
   /**
@@ -120,46 +197,18 @@ class Payer {
   }
 
   /**
-   * Получить статус материала
-   * @param $nid
-   * @param $status
-   */
-  static public function get_event_pay_status($pay_id, $nid = NULL) {
-    if(!isset($nid)) {
-      $nid = self::get_event_pay_nid($pay_id);
-    }
-
-    $status = db_select('field_data_events_pay_status', 's')
-      ->fields('s', array('events_pay_status_value'))
-      ->condition('s.entity_id', $nid)
-      ->execute()
-      ->fetchAssoc();
-
-    return $status['events_pay_status_value '];
-  }
-
-  static public function get_event_pay_node($pay_id, $nid = NULL) {
-    if(!isset($nid)) {
-      $nid = self::get_event_pay_nid($pay_id);
-    }
-
-    return node_load($nid);
-  }
-
-  /**
-   * @param $pay_id
-   *
-   * @return int — nid
-   */
-  static public function get_event_pay_nid($pay_id) {
-    $node = db_select('node', 'n')
-      ->fields('n', array('nid'))
-      ->condition('n.type', 'events_pay')
-      ->condition('n.title', $pay_id)
-      ->execute()
-      ->fetchAssoc();
-
-    return $node['nid'];
+   * Запись вычисленного значения "$this->balance" в базу
+   **/
+  static function set_user_balance($user, $balance) {
+    $user->payer_wallet['und'][0]['value'] = $balance;
+    $field_info = field_info_field('payer_wallet');
+    field_sql_storage_field_storage_write(
+      'user',
+      $user,
+      'update',
+      array($field_info['id'])
+    );
+    cache_clear_all("field:user:{$user->uid}", 'cache_field');
   }
 
   /**
@@ -177,7 +226,8 @@ class Payer {
         $this->create_event_pay_node();
 
         if($this->status == 1) {
-          $this->set_user_balance();
+          // Используется при прямом создании события через node add со статусом "Исполнено"
+          self::set_user_balance($this->user, $this->balance);
         }
         drupal_set_message(t('Event successfully created'));
       }
@@ -192,11 +242,11 @@ class Payer {
         $this->act = $node->events_pay_act['und'][0]['value'];
         $this->amount = $node->events_pay_amount['und'][0]['value'];
         $this->user = self::get_user_object($node->uid);
-        $this->score = $this->get_user_balance();
+        $this->score = self::get_user_balance($this->user);
         $this->balance = self::calc_balance_user($this->act, $this->score, $this->amount);
 
         self::set_event_pay_status('', $this->status, $node->nid);
-        $this->set_user_balance();
+        self::set_user_balance($this->user, $this->balance);
 
         drupal_set_message(t('Event "@pay_id" is "@status". @act = @amount. Current user balance @balance', array(
           '@pay_id' => $this->pay_id,
@@ -211,6 +261,7 @@ class Payer {
       }
     }
   }
+
   /**
    * Создание события прихода или расхода средств
    **/
@@ -218,7 +269,7 @@ class Payer {
     $node = new stdClass();
     $node->type = 'events_pay';
     node_object_prepare($node);
-    $node->title = $this->get_last_event_number() + 1;
+    $node->title = self::get_last_event_number() + 1;
     $node->language = LANGUAGE_NONE;
     $node->uid = $this->user->uid;
     $node->events_pay_act[$node->language][0]['value'] = $this->act;
@@ -229,50 +280,11 @@ class Payer {
     if ($node = node_submit($node)) {
       try {
         node_save($node);
+        $this->pay_id = $node->title;
       }
       catch (Exception $e) {
         throw new Exception('Error saving node');
       }
     }
-  }
-
-  /**
-   * Запись вычисленного значения "$this->balance" в базу
-   **/
-  private function set_user_balance() {
-    $this->user->payer_wallet['und'][0]['value'] = $this->balance;
-    $field_info = field_info_field('payer_wallet');
-    field_sql_storage_field_storage_write(
-      'user',
-      $this->user,
-      'update',
-      array($field_info['id'])
-    );
-    cache_clear_all("field:user:{$this->user->uid}", 'cache_field');
-  }
-
-  /**
-   * Получение количества материалов типа "events_pay" в базе
-   **/
-  private function get_last_event_number() {
-    $query = db_select('node', 'n')
-      ->fields('n', array('nid', 'title'))
-      ->condition('n.type', 'events_pay')
-      ->orderBy('nid', 'DESC')
-      ->execute()
-      ->fetchAssoc();
-
-    return (int)$query['title'];
-  }
-
-  /**
-   * Получение количества денег в кошельке пользователя
-   **/
-  private function get_user_balance() {
-    $amount_wallet = field_get_items( 'user' , $this->user, 'payer_wallet' );
-    if(empty($amount_wallet[0]['value'])) {
-      $amount_wallet[0]['value'] = 0;
-    }
-    return $amount_wallet[0]['value'];
   }
 }

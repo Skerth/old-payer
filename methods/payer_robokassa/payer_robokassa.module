@@ -213,6 +213,7 @@ function payer_robokassa_payment($form) {
     '#title' => t('Summ'),
     '#required' => TRUE,
     '#maxlength' => 255,
+    '#element_validate' => array('element_validate_number'),
   );
 
   $form['actions']['custom_submit'] = array(
@@ -227,7 +228,7 @@ function payer_robokassa_payment($form) {
 
 function payer_robokassa_payment_submit($form, &$form_state)  {
   global $user;
-  $out_summ = $form_state['values']['OutSum'];
+  $out_summ = number_format($form_state['values']['OutSum'], 2,'.', '');
   $mrh_login = variable_get('payer_robokassa_merchant_login');
   $test_mode = variable_get('payer_robokassa_test_enabled');
 
@@ -241,10 +242,22 @@ function payer_robokassa_payment_submit($form, &$form_state)  {
     $mrh_pass1 = variable_get('payer_robokassa_test_password_1');
   }
 
-  // build CRC value
-  $crc  = md5("$mrh_login:$out_summ::$mrh_pass1:Shp_uid=$user->uid");
+  $vars = array(
+    'uid' => $user->uid,
+    'act' => 1,
+    'status' => 0,
+    'amount' => $out_summ,
+    'comment' => 'Robokassa',
+  );
 
-  drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$out_summ&Shp_uid=$user->uid&SignatureValue=$crc");
+  $event = new Payer($vars);
+  $event->handler_event_pay();
+  $inv_id = $event->pay_id;
+  // build CRC value
+  $crc  = md5("$mrh_login:$out_summ:$inv_id:$mrh_pass1");
+  dpm($crc);
+
+  //drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$out_summ&InvId=$inv_id&SignatureValue=$crc");
 
 }
 
@@ -261,28 +274,28 @@ function payer_robokassa_result_page() {
   $out_summ = isset($_REQUEST['OutSum']) ? $_REQUEST['OutSum'] : NULL;
   $inv_id = isset($_REQUEST['InvId']) ? $_REQUEST['InvId'] : NULL;
   $crc = isset($_REQUEST['SignatureValue']) ? $_REQUEST['SignatureValue'] : NULL;
-  $uid = isset($_REQUEST['Shp_uid']) ? $_REQUEST['Shp_uid'] : NULL;
 
   $crc = strtoupper($crc);  // force uppercase
   // build own CRC
-  $my_crc = strtoupper(md5("$out_summ:$inv_id:$mrh_pass2:Shp_uid=$uid"));
+  $my_crc = strtoupper(md5("$out_summ:$inv_id:$mrh_pass2"));
 
-  if ($my_crc == $crc) {
-    $vars = array(
-      'uid' => $uid,
-      'act' => 1,
-      'amount' => $out_summ,
-      'comment' => 'Robokassa',
-    );
-
-    $event = new Payer($vars);
-    $event->handler_event_pay();
+  if ($my_crc == $crc && !empty($inv_id)) {
+    $event = Payer::get_event_pay_node($inv_id);
+    Payer::set_event_pay_status($inv_id, '1');
+    /**
+     * Логику с получением суммы из счета вынести в класс Payer в static
+     */
+    $amount = field_get_items( 'node' , $event, 'events_pay_amount' );
+    $amount = $amount[0]['value'];
+    $user = Payer::get_user_object($event->uid);
+    $score = Payer::get_user_balance($user);
+    $balance = Payer::calc_balance_user('1', $score, $amount);
+    Payer::set_user_balance($user, $balance);
     print 'OK';
-    return TRUE;
+    die();
   }
 
   drupal_not_found();
-  return FALSE;
 }
 
 function payer_robokassa_success_page() {
