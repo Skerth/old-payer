@@ -13,21 +13,21 @@ function payer_menu() {
 
   $items['admin/config/payer'] = array(
     'title' => 'Payer',
-    'description' => 'Configure settings Payer.',
+    'description' => 'Connected payment methods.',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'payer_config_page',
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
   );
   // описание дефолтной вкладки
-  $items['admin/config/payer/settings'] = array(
+  $items['admin/config/payer/methods'] = array(
     'title' => 'Methods',             // не переведённое название первой вкладки
     'type' => MENU_DEFAULT_LOCAL_TASK, // пункт будет отображаться как локальная задача по умолчанию, т.е. выделяться при просмотре страницы
     'weight' => '-50',
   );
-  $items['admin/config/payer/url'] = array(
-    'title' => 'URL',
-    'description' => 'Configure URL Payer.',
+  $items['admin/config/payer/settings'] = array(
+    'title' => 'Settings',
+    'description' => 'Configure Payer.',
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'payer_config_url_page',
     'access callback' => 'user_access',
