@@ -259,7 +259,7 @@ function payer_robokassa_payment_submit($form, &$form_state)  {
   drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$out_summ&InvId=$inv_id&SignatureValue=$crc");
 
 }*/
-function payer_robokassa_handler($user) {
+function payer_robokassa_handler($uid, $amount) {
   $mrh_login = variable_get('payer_robokassa_merchant_login');
   $test_mode = variable_get('payer_robokassa_test_enabled');
 
@@ -274,10 +274,10 @@ function payer_robokassa_handler($user) {
   }
 
   $vars = array(
-    'uid' => $user->uid,
+    'uid' => $uid,
     'act' => 1,
     'status' => 0,
-    'amount' => $out_summ,
+    'amount' => $amount,
     'comment' => 'Robokassa',
   );
 
@@ -285,9 +285,9 @@ function payer_robokassa_handler($user) {
   $event->handler_event_pay();
   $inv_id = $event->pay_id;
   // build CRC value
-  //$crc  = md5("$mrh_login:$out_summ:$inv_id:$mrh_pass1");
+  $crc  = md5("$mrh_login:$amount:$inv_id:$mrh_pass1");
 
-  //drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$out_summ&InvId=$inv_id&SignatureValue=$crc");
+  drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$amount&InvId=$inv_id&SignatureValue=$crc");
 
 }
 
@@ -327,6 +327,7 @@ function payer_robokassa_result_page() {
     else {
       watchdog('payer','The transaction @inv_id has already been complete',
         array('@inv_id' => $inv_id));
+      print 'The transaction has already been complete!';
     }
     die();
   }
