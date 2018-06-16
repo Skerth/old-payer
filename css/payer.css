@@ -1,0 +1,48 @@
+.payer-form-payment .form-item-methods label[for="edit-methods"],
+.payer-form-payment .form-item-methods .form-radio {
+  display: none;
+}
+.payer-form-payment .form-item-methods .form-radios {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin: 0 -5px;
+}
+.payer-form-payment .form-item-methods .form-type-radio {
+  width: 100%;
+  max-width: 25%;
+  margin: 0;
+}
+.payer-form-payment .form-item-methods .form-radio + label {
+  display: block;
+  margin: 0 5px 10px;
+  padding: 30px;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  background: #fff;
+  text-align: center;
+  opacity: .8;
+  cursor: pointer;
+}
+.payer-form-payment .form-item-methods .form-radio + label:hover {
+  box-shadow: 0 0 5px -1px #ddd;
+}
+.payer-form-payment .form-item-methods .form-radio:checked + label {
+  background: #f4f4f4;
+  box-shadow: 0 0 5px 1px #ddd;
+  opacity: 1;
+}
+.payer-form-payment .payer-method-preview {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 5px;
+}
+.payer-form-payment .payer-method-name {
+  display: block;
+  color: #888;
+  font-weight: 700;
+}

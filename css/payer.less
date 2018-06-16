@@ -1,0 +1,59 @@
+.payer-form-payment {
+  .form-item-methods {
+    label[for="edit-methods"],
+    .form-radio{
+      display: none;
+    }
+    .form-radios {
+      display: -webkit-flex;
+      display: flex;
+      -webkit-flex-wrap: wrap;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      margin: 0 -5px;
+    }
+
+    .form-type-radio {
+      width: 100%;
+      max-width: 25%;
+      margin: 0;
+    }
+
+    .form-radio {
+      + label {
+        display: block;
+        margin: 0 5px 10px;
+        padding: 30px;
+        border: 1px solid #ddd;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        border-radius: 5px;
+        background: #fff;
+        text-align: center;
+        opacity: .8;
+        cursor: pointer;
+
+        &:hover {
+          box-shadow: 0 0 5px -1px #ddd;
+        }
+      }
+      &:checked + label {
+        background: #f4f4f4;
+        box-shadow: 0 0 5px 1px #ddd;
+        opacity: 1;
+      }
+    }
+  }
+
+  .payer-method-preview {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 5px;
+  }
+
+  .payer-method-name {
+    display: block;
+    color: #888;
+    font-weight: 700;
+  }
+}
