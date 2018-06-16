@@ -1,6 +1,5 @@
 <?php
 
-
 function payer_init() {
   $module_path = drupal_get_path('module', 'payer');
   drupal_add_css($module_path . '/css/payer.css');
@@ -37,7 +36,7 @@ function payer_menu() {
   );
 
   $items['payer'] = array(
-    'title' => 'Pay',
+    'title' => 'Top up your wallet',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('payer_payment'),
@@ -47,13 +46,6 @@ function payer_menu() {
   return $items;
 }
 
-function payer_get_methods() {
-  $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
-  // Поиск файлов .info по указанному пути.
-  $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
-
-  return $existing_methods;
-}
 /**
  * Обработчик страницы конфигурации модуля Payer
  **/
@@ -154,6 +146,10 @@ function payer_config_page() {
   );
 }
 
+/**
+ * Страница, где можно сменить URL страницы пополнения кошелька
+ * @return string
+ */
 function payer_config_url_page() {
   return 'URL';
 }
@@ -171,12 +167,18 @@ function payer_theme(){
   );
 }
 
+/**
+ * Форма на странице пополнения кошелька
+ * @param $form
+ *
+ * @return mixed
+ */
 function payer_payment($form) {
   $form['#attributes'] = array('class' => array('payer-form-payment'));
 
   $form['payer_amount'] = array(
     '#type' => 'textfield',
-    '#title' => t('Summ'),
+    '#title' => t('Amount'),
     '#required' => TRUE,
     '#maxlength' => 30,
     '#element_validate' => array('element_validate_number'),
@@ -196,7 +198,9 @@ function payer_payment($form) {
   );
 
   $existing_methods = payer_get_methods();
+
   $enabled_methods = array();
+
   foreach($existing_methods as $pay_method) {
     if(module_exists($pay_method->name)) {
       $info = drupal_parse_info_file($pay_method->uri);
@@ -205,8 +209,8 @@ function payer_payment($form) {
         $image_preview = theme('image',
           array(
             'path' => $image_preview,
-            'title' => $info['name'],
-            'alt' => 'Pay by ' . $info['name'],
+            'title' => 'Pay by ' . $info['name'],
+            'alt' => $info['name'],
             'attributes' => array('class' => 'payer-method-preview'),
           )
         );
@@ -240,11 +244,22 @@ function payer_payment($form) {
   return $form;
 }
 
+/**
+ * Обработчик формы пополнения кошелька
+ * @param $form
+ * @param $form_state
+ *
+ * @return bool
+ */
 function payer_payment_submit($form, &$form_state)  {
   global $user;
-  $out_summ = number_format($form_state['values']['payer_amount'], 2,'.', '');
+  $amount = number_format($form_state['values']['payer_amount'], 2,'.', '');
   $method = $form_state['values']['methods'];
-  dpm($out_summ. ' : ' .$method);
+
+  $pay_handler = $method.'_handler';
+  $pay_handler($user->uid, $amount);
+
+  return TRUE;
 }
 
 /**
@@ -310,4 +325,16 @@ function payer_create_event_pay_node($form, &$form_state) {
 
   $event = new Payer($vars);
   $event->handler_event_pay();
+}
+
+/**
+ * Получает все методы оплаты из папки payer/methods
+ * @return array
+ */
+function payer_get_methods() {
+  $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
+  // Поиск файлов .info по указанному пути.
+  $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
+
+  return $existing_methods;
 }
