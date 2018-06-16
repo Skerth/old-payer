@@ -64,7 +64,7 @@ class Payer {
       $this->status = $vars['status'];
     }
     if (isset($vars['amount'])){
-      $this->amount = $vars['amount'];
+      $this->amount = number_format($vars['amount'], 2,'.', '');
     }
     if (isset($vars['comment'])){
       $this->comment = $vars['comment'];
@@ -85,21 +85,54 @@ class Payer {
 
   /**
    * Получить статус материала
-   * @param $nid
-   * @param $status
    */
-  static public function get_event_pay_status($pay_id, $nid = NULL) {
-    if(!isset($nid)) {
-      $nid = self::get_event_pay_nid($pay_id);
+  static public function get_event_pay_status($vars) {
+    if(!isset($vars['node'])){
+      if(!isset($vars['nid'])) {
+        $vars['nid'] = self::get_event_pay_nid($vars['pay_id']);
+      }
+
+      $status = db_select('field_data_events_pay_status', 's')
+        ->fields('s', array('events_pay_status_value'))
+        ->condition('s.entity_id', $vars['nid'])
+        ->execute()
+        ->fetchAssoc();
+
+      $status = $status['events_pay_status_value'];
     }
+    else {
+      $status = field_get_items( 'node' , $vars['node'], 'events_pay_status' );
+      $status = $status[0]['value'];
+    }
+    return $status;
+  }
 
-    $status = db_select('field_data_events_pay_status', 's')
-      ->fields('s', array('events_pay_status_value'))
-      ->condition('s.entity_id', $nid)
-      ->execute()
-      ->fetchAssoc();
+  /**
+   * Получить сумму счета
+   *
+   * @param $vars
+   *
+   * @return mixed
+   */
+  static public function get_event_pay_amount($vars) {
+    if(!isset($vars['node'])){
+      if(!isset($vars['nid'])) {
+        $vars['nid'] = self::get_event_pay_nid($vars['pay_id']);
+      }
 
-    return $status['events_pay_status_value '];
+      $amount = db_select('field_data_events_pay_amount', 's')
+        ->fields('s', array('events_pay_amount_value'))
+        ->condition('s.entity_id', $vars['nid'])
+        ->execute()
+        ->fetchAssoc();
+
+      $amount = $amount['events_pay_amount_value'];
+    }
+    else {
+      $amount = field_get_items( 'node' , $vars['node'], 'events_pay_amount' );
+      $amount = $amount[0]['value'];
+    }
+    return $amount;
   }
 
   /**

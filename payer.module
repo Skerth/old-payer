@@ -1,5 +1,11 @@
 <?php
 
+
+function payer_init() {
+  $module_path = drupal_get_path('module', 'payer');
+  drupal_add_css($module_path . '/css/payer.css');
+}
+
 /**
  * Implements hook_menu().
  */
@@ -14,18 +20,45 @@ function payer_menu() {
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
   );
+  // описание дефолтной вкладки
+  $items['admin/config/payer/settings'] = array(
+    'title' => 'Methods',             // не переведённое название первой вкладки
+    'type' => MENU_DEFAULT_LOCAL_TASK, // пункт будет отображаться как локальная задача по умолчанию, т.е. выделяться при просмотре страницы
+    'weight' => '-50',
+  );
+  $items['admin/config/payer/url'] = array(
+    'title' => 'URL',
+    'description' => 'Configure URL Payer.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'payer_config_url_page',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'weight' => '-49',
+  );
 
+  $items['payer'] = array(
+    'title' => 'Pay',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_payment'),
+    'access callback' => 'user_access',
+    'access arguments' => array('access content'),
+  );
   return $items;
 }
 
-/**
- * Обработчик страницы конфигурации модуля Payer
- **/
-function payer_config_page() {
+function payer_get_methods() {
   $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
   // Поиск файлов .info по указанному пути.
   $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
 
+  return $existing_methods;
+}
+/**
+ * Обработчик страницы конфигурации модуля Payer
+ **/
+function payer_config_page() {
+  $existing_methods = payer_get_methods();
   // Шапка таблицы с контентом
   $headers = array(
     array('class' => array('pay-method_status')),
@@ -121,6 +154,10 @@ function payer_config_page() {
   );
 }
 
+function payer_config_url_page() {
+  return 'URL';
+}
+
 /**
  * Implement hook_theme().
  */
@@ -132,6 +169,82 @@ function payer_theme(){
       'variables' => array('page_data' => NULL),
     ),
   );
+}
+
+function payer_payment($form) {
+  $form['#attributes'] = array('class' => array('payer-form-payment'));
+
+  $form['payer_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Summ'),
+    '#required' => TRUE,
+    '#maxlength' => 30,
+    '#element_validate' => array('element_validate_number'),
+    '#weight' => -50,
+    '#attributes' => array('class' => array('payer-amount')),
+  );
+
+  $form['payer_method'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Methods'),
+    '#description' => t('Choose payment method'),
+    '#weight' => -49,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+    '#attributes' => array('class' => array('payer-method')),
+  );
+
+  $existing_methods = payer_get_methods();
+  $enabled_methods = array();
+  foreach($existing_methods as $pay_method) {
+    if(module_exists($pay_method->name)) {
+      $info = drupal_parse_info_file($pay_method->uri);
+      $image_preview = drupal_get_path('module', $pay_method->name) . '/preview.png';
+      if(file_exists($image_preview)) {
+        $image_preview = theme('image',
+          array(
+            'path' => $image_preview,
+            'title' => $info['name'],
+            'alt' => 'Pay by ' . $info['name'],
+            'attributes' => array('class' => 'payer-method-preview'),
+          )
+        );
+      }
+      else {
+        $image_preview = NULL;
+      }
+      $info['name'] = '<span class="payer-method-name">' . $info['name'] . '</span>';
+      $enabled_methods[$pay_method->name] = $image_preview . $info['name'];
+    }
+  }
+
+  $form['payer_method']['methods'] = array(
+    '#title' => 'Methods',
+    '#type' => 'radios',
+    '#options' => $enabled_methods,
+    '#required' => TRUE,
+  );
+
+  $form['actions'] = array(
+    '#weight' => 50,
+  );
+
+  $form['actions']['custom_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Payment'),
+  );
+
+  $form['#submit'] = array('payer_payment_submit');
+
+  return $form;
+}
+
+function payer_payment_submit($form, &$form_state)  {
+  global $user;
+  $out_summ = number_format($form_state['values']['payer_amount'], 2,'.', '');
+  $method = $form_state['values']['methods'];
+  dpm($out_summ. ' : ' .$method);
 }
 
 /**
@@ -159,6 +272,10 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
       $form['events_pay_comment']['#disabled'] = TRUE;
       $form['actions']['submit']['#access'] = FALSE;
     }
+  }
+
+  if($form_id == 'user_profile_form') {
+    $form['payer_wallet']['#access'] = FALSE;
   }
 }
 
