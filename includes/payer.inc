@@ -33,19 +33,31 @@ class Payer {
      * Если запрос на существующую транзакцию. Например: нужно получить данные по транзакции или поменять статус транзакции.
      */
     if (isset($this->data['tid'])) {
-      $this->transaction = $this->load_transaction();
+      if(empty($this->transaction)) {
+        $this->transaction = $this->load_transaction();
+      }
 
       if (isset($this->data['status'])
         && $this->transaction['status'] != $this->data['status']
       ) {
-        $this->set_transaction_status();
+        $this->save_transaction_status();
         $this->handler_user_balance();
-
       }
     }
     else {
       $this->save_transaction();
       $this->handler_user_balance();
+    }
+  }
+
+  /**
+   * Установить статус транзакции
+   *
+   * @param $status
+   */
+  public function set_transaction_status($status) {
+    if(!empty($status)) {
+      $this->data['status'] = $status;
     }
   }
 
@@ -122,9 +134,9 @@ class Payer {
   }
 
   /**
-   * Установить статус транзакции
+   * Сохранить статус транзакции
    */
-  private function set_transaction_status() {
+  private function save_transaction_status() {
     db_update('payer_transactions')
       ->fields(['status' => $this->data['status']])
       ->condition('tid', $this->transaction['tid'])
