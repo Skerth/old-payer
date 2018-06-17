@@ -5,138 +5,78 @@
  * Contains install and update functions for Payer.
  */
 
+
+/**
+ * Implements hook_schema().
+ */
+function payer_schema() {
+  $schema['payer_transactions'] = array(
+    'description' => 'The table stores information about each transaction of the user.',
+    'fields' => array(
+      'tid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'description' => 'Unique transaction ID.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => 'The {users}.uid that owns this transaction; initially, this is the user that created it.',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'act' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+      ),
+      'amount' => array(
+        'type' => 'numeric',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'precision' => 12,
+        'scale' => 6,
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => 'Time of transaction creation',
+      ),
+      'info' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+        'default' => '',
+      ),
+      'method' => array(
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('tid'),
+  );
+
+  return $schema;
+}
+
 /**
  * Implements hook_install().
  */
 function payer_install() {
-  $events_pay_type = array(
-    'type' => 'events_pay',
-    'name' => st('Events pay'),
-    'base' => 'node_content',
-    'custom' => TRUE,
-    'modified' => TRUE,
-    'locked' => FALSE,
-  );
-
-  $events_pay_type = node_type_set_defaults($events_pay_type);
-  node_type_save($events_pay_type);
-
-  // Disable comments by default on Events pay nodes.
-  variable_set('comment_events_pay', '0');
-
-  // Create fields for Events pay
-  // Create node field Act
-  field_create_field(
-    array(
-      'field_name' => 'events_pay_act',
-      'type' => 'list_text',
-      'cardinality' => 1,
-      'settings' => array(
-        'allowed_values' => array(
-          0 => st('Spending'),
-          1 => st('Coming'),
-        ),
-      ),
-    )
-  );
-  // Create instance Act
-  field_create_instance(
-    array(
-      'entity_type' => 'node',
-      'bundle' => 'events_pay',
-      'field_name' => 'events_pay_act',
-      'required' => TRUE,
-      'label' => st('Act'),
-      'widget' => array('type' => 'options_select'),
-    )
-  );
-
-  // Create node field Status
-  field_create_field(
-    array(
-      'field_name' => 'events_pay_status',
-      'type' => 'list_text',
-      'cardinality' => 1,
-      'settings' => array(
-        'allowed_values' => array(
-          0 => st('Waiting'),
-          1 => st('Completed'),
-        ),
-      ),
-    )
-  );
-  // Create instance Status
-  field_create_instance(
-    array(
-      'entity_type' => 'node',
-      'bundle' => 'events_pay',
-      'field_name' => 'events_pay_status',
-      'required' => TRUE,
-      'label' => st('Status'),
-      'widget' => array('type' => 'options_select'),
-    )
-  );
-
-  // Create node field Amount
-  field_create_field(
-    array(
-      'field_name' => 'events_pay_amount',
-      'type' => 'number_float',
-      'cardinality' => 1,
-    )
-  );
-  // Create instance Amount
-  field_create_instance(
-    array(
-      'field_name' => 'events_pay_amount',
-      'entity_type' => 'node',
-      'bundle' => 'events_pay',
-      'label' => st('Amount'),
-      'required' => TRUE,
-      'widget' => array(
-        'type' => 'number',
-      ),
-      'settings' => array(
-        'text_processing' => TRUE,
-        'min' => 0,
-        'decimal_separator' => '.',
-      ),
-      'display' => array(
-        'default' => array(
-          'type' => 'number_float',
-        ),
-      ),
-    )
-  );
-
-  // Create node field Comment
-  field_create_field(
-    array(
-      'field_name' => 'events_pay_comment',
-      'type' => 'text',
-      'cardinality' => 1,
-    )
-  );
-  // Create instance Comment
-  field_create_instance(
-    array(
-      'field_name' => 'events_pay_comment',
-      'entity_type' => 'node',
-      'bundle' => 'events_pay',
-      'label' => st('Comment'),
-      'widget' => array(
-        'type' => 'textfield',
-      ),
-      'settings' => array(
-        'text_processing' => FALSE,
-      ),
-      'display' => array(
-        'default' => array(
-          'type' => 'textfield',
-        ),
-      ),
-    )
-  );
+  variable_set('payer_payment_url', 'payer');
 
   // Create user field Wallet
   field_create_field(
@@ -179,4 +119,5 @@ function payer_install() {
  * Implements hook_uninstall().
  */
 function payer_uninstall() {
+  variable_del('payer_payment_url');
 }

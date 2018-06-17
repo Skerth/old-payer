@@ -15,27 +15,38 @@ function payer_menu() {
     'title' => 'Payer',
     'description' => 'Connected payment methods.',
     'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'payer_config_page',
+    'page callback' => 'payer_methods_list',
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
   );
   // описание дефолтной вкладки
   $items['admin/config/payer/methods'] = array(
-    'title' => 'Methods',             // не переведённое название первой вкладки
-    'type' => MENU_DEFAULT_LOCAL_TASK, // пункт будет отображаться как локальная задача по умолчанию, т.е. выделяться при просмотре страницы
+    'title' => 'Methods',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => '-50',
+  );
+  $items['admin/config/payer/add-transaction'] = array(
+    'title' => 'Add transaction',
+    'description' => 'Configure Payer.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_add_transaction'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'weight' => '-49',
   );
   $items['admin/config/payer/settings'] = array(
     'title' => 'Settings',
     'description' => 'Configure Payer.',
     'type' => MENU_LOCAL_TASK,
-    'page callback' => 'payer_config_url_page',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('payer_settings'),
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
-    'weight' => '-49',
+    'weight' => '-48',
   );
 
-  $items['payer'] = array(
+  $items[variable_get('payer_payment_url')] = array(
     'title' => 'Top up your wallet',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
@@ -47,10 +58,167 @@ function payer_menu() {
 }
 
 /**
- * Обработчик страницы конфигурации модуля Payer
+ * Страница, где можно сменить URL страницы пополнения кошелька
+ * @return string
+ */
+function payer_settings($form) {
+  $form['payer_payment_url'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Payment url'),
+    '#default_value' => variable_get('payer_payment_url'),
+    '#required' => TRUE,
+    '#maxlength' => 255,
+  );
+  $form = system_settings_form($form);
+  array_unshift($form['#submit'], 'payer_settings_submit');
+
+  return $form;
+}
+
+/**
+ * Обработчик формы настроек модуля
+ * @param $form
+ * @param $form_state
+ */
+function payer_settings_submit($form, &$form_state) {
+  $payment_url = variable_get('payer_payment_url');
+  // Если любой из url отличается, перестраиваем меню.
+  if($form_state['values']['payer_payment_url'] != $payment_url) {
+    menu_rebuild();
+    drupal_set_message(t('The menu has been rebuilt.'));
+  }
+}
+
+function payer_add_transaction($form) {
+  $form['payer_transaction_amount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Amount'),
+    '#element_validate' => array('element_validate_number'),
+    '#required' => TRUE,
+    '#maxlength' => 20,
+    '#size' => 20,
+  );
+
+  $form['payer_transaction_act'] = array(
+    '#type' => 'radios',
+    '#title' => t('Act'),
+    '#options' => array(
+      0 => 'Spending',
+      1 => 'Coming',
+    ),
+    '#required' => TRUE,
+  );
+
+  $form['payer_transaction_status'] = array(
+    '#type' => 'radios',
+    '#title' => t('Status'),
+    '#options' => array(
+      0 => 'Waiting',
+      1 => 'Completed',
+    ),
+    '#required' => TRUE,
+  );
+
+  $form['payer_transaction_method'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Method'),
+    '#maxlength' => 255,
+    '#default_value' => t('Manually'),
+  );
+
+  $form['payer_transaction_info'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Info'),
+    '#maxlength' => 255,
+  );
+
+  $form['payer_transaction_username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#description' => t('Leave blank for the current user'),
+    '#default_value' => '',
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => '20',
+    '#maxlength' => '60',
+  );
+
+  $form['actions']['custom_submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Create transaction'),
+  );
+
+  $form['#validate'] = array('payer_add_transaction_validate');
+  $form['#submit'] = array('payer_add_transaction_submit');
+
+  return $form;
+}
+
+function payer_add_transaction_validate($form, &$form_state) {
+  dpm('Validate!');
+}
+
+function payer_add_transaction_submit($form, &$form_state) {
+  $username = $form_state['values']['payer_transaction_username'];
+
+  if(!empty($username)) {
+    $user = user_load_by_name($form_state['values']['payer_transaction_username']);
+  }
+  else {
+    global $user;
+  }
+
+  $fields = array();
+  $fields['uid'] = $user->uid;
+  $fields['status'] = $form_state['values']['payer_transaction_status'];
+  $fields['act'] = $form_state['values']['payer_transaction_act'];
+  $fields['amount'] = $form_state['values']['payer_transaction_amount'];
+  $fields['method'] = $form_state['values']['payer_transaction_method'];
+  $fields['info'] = $form_state['values']['payer_transaction_info'];
+  $fields['created'] = REQUEST_TIME;
+
+  db_insert('payer_transactions')
+    ->fields($fields)
+    ->execute();
+}
+
+/**
+ * Валидация формы создания типа материала "events_pay"
  **/
-function payer_config_page() {
-  $existing_methods = payer_get_methods();
+function payer_validate_event_pay_node($form, &$form_state) {
+  $act = $form_state['values']['events_pay_act']['und'][0]['value'];
+  $status = $form_state['values']['events_pay_status']['und'][0]['value'];
+  $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
+  $user = user_load_by_name($form_state['values']['name']);
+  $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
+  $amount_wallet = $amount_wallet[0]['value'];
+
+  if (isset($amount) && $act == 0 && ($amount_wallet - $amount) < 0) {
+    form_set_error('events_pay_amount', t('Insufficient funds!'));
+  }
+}
+
+/**
+ * Обработчик формы создания типа материала "events_pay" после валидации
+ **/
+function payer_create_event_pay_node($form, &$form_state) {
+  $user = user_load_by_name($form_state['values']['name']);
+  $vars = array(
+    'uid' => $user->uid,
+    'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
+    'status' => $form_state['values']['events_pay_status']['und'][0]['value'],
+    'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
+    'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
+  );
+
+  $event = new Payer($vars);
+  $event->handler_event_pay();
+}
+
+/**
+ * Обработчик страницы списка методов оплаты модуля Payer
+ **/
+function payer_methods_list() {
+  $existing_methods = _get_methods();
   // Шапка таблицы с контентом
   $headers = array(
     array('class' => array('pay-method_status')),
@@ -147,14 +315,6 @@ function payer_config_page() {
 }
 
 /**
- * Страница, где можно сменить URL страницы пополнения кошелька
- * @return string
- */
-function payer_config_url_page() {
-  return 'URL';
-}
-
-/**
  * Implement hook_theme().
  */
 function payer_theme(){
@@ -197,7 +357,7 @@ function payer_payment($form) {
     '#attributes' => array('class' => array('payer-method')),
   );
 
-  $existing_methods = payer_get_methods();
+  $existing_methods = _get_methods();
 
   $enabled_methods = array();
 
@@ -295,43 +455,10 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Валидация формы создания типа материала "events_pay"
- **/
-function payer_validate_event_pay_node($form, &$form_state) {
-  $act = $form_state['values']['events_pay_act']['und'][0]['value'];
-  $status = $form_state['values']['events_pay_status']['und'][0]['value'];
-  $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
-  $user = user_load_by_name($form_state['values']['name']);
-  $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
-  $amount_wallet = $amount_wallet[0]['value'];
-
-  if (isset($amount) && $act == 0 && ($amount_wallet - $amount) < 0) {
-    form_set_error('events_pay_amount', t('Insufficient funds!'));
-  }
-}
-
-/**
- * Обработчик формы создания типа материала "events_pay" после валидации
- **/
-function payer_create_event_pay_node($form, &$form_state) {
-  $user = user_load_by_name($form_state['values']['name']);
-  $vars = array(
-    'uid' => $user->uid,
-    'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
-    'status' => $form_state['values']['events_pay_status']['und'][0]['value'],
-    'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
-    'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
-  );
-
-  $event = new Payer($vars);
-  $event->handler_event_pay();
-}
-
-/**
  * Получает все методы оплаты из папки payer/methods
  * @return array
  */
-function payer_get_methods() {
+function _get_methods() {
   $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;
   // Поиск файлов .info по указанному пути.
   $existing_methods = file_scan_directory($dir_methods, '/.*\.info/');
