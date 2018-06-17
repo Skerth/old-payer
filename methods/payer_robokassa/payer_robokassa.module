@@ -207,58 +207,6 @@ function payer_robokassa_settings_submit($form, &$form_state) {
   }
 }
 
-/*function payer_robokassa_payment($form) {
-  $form['OutSum'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Summ'),
-    '#required' => TRUE,
-    '#maxlength' => 255,
-    '#element_validate' => array('element_validate_number'),
-  );
-
-  $form['actions']['custom_submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Payment'),
-  );
-
-  $form['#submit'] = array('payer_robokassa_payment_submit');
-
-  return $form;
-}
-
-function payer_robokassa_payment_submit($form, &$form_state)  {
-  global $user;
-  $out_summ = number_format($form_state['values']['OutSum'], 2,'.', '');
-  $mrh_login = variable_get('payer_robokassa_merchant_login');
-  $test_mode = variable_get('payer_robokassa_test_enabled');
-
-  // registration info (password #1)
-  if(!$test_mode) {
-    $test_mode = NULL;
-    $mrh_pass1 = variable_get('payer_robokassa_password_1');
-  }
-  else {
-    $test_mode = '&IsTest=1';
-    $mrh_pass1 = variable_get('payer_robokassa_test_password_1');
-  }
-
-  $vars = array(
-    'uid' => $user->uid,
-    'act' => 1,
-    'status' => 0,
-    'amount' => $out_summ,
-    'comment' => 'Robokassa',
-  );
-
-  $event = new Payer($vars);
-  $event->handler_event_pay();
-  $inv_id = $event->pay_id;
-  // build CRC value
-  $crc  = md5("$mrh_login:$out_summ:$inv_id:$mrh_pass1");
-
-  drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$out_summ&InvId=$inv_id&SignatureValue=$crc");
-
-}*/
 function payer_robokassa_handler($uid, $amount) {
   $mrh_login = variable_get('payer_robokassa_merchant_login');
   $test_mode = variable_get('payer_robokassa_test_enabled');
@@ -278,17 +226,18 @@ function payer_robokassa_handler($uid, $amount) {
     'act' => 1,
     'status' => 0,
     'amount' => $amount,
-    'comment' => 'Robokassa',
+    'created' => REQUEST_TIME,
+    'method' => 'Robokassa',
   );
 
-  $event = new Payer($vars);
-  $event->handler_event_pay();
-  $inv_id = $event->pay_id;
+  $refill = new Payer($vars);
+  $refill->transaction();
+  $transaction = $refill->get_transaction();
+  $tid = $transaction['tid'];
   // build CRC value
-  $crc  = md5("$mrh_login:$amount:$inv_id:$mrh_pass1");
+  $crc  = md5("$mrh_login:$amount:$tid:$mrh_pass1");
 
-  drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$amount&InvId=$inv_id&SignatureValue=$crc");
-
+  drupal_goto("https://auth.robokassa.ru/Merchant/Index.aspx?$test_mode&MrchLogin=$mrh_login&OutSum=$amount&InvId=$tid&SignatureValue=$crc");
 }
 
 function payer_robokassa_result_page() {
@@ -301,32 +250,32 @@ function payer_robokassa_result_page() {
   }
 
   // HTTP parameters:
-  $out_summ = isset($_REQUEST['OutSum']) ? $_REQUEST['OutSum'] : NULL;
-  $inv_id = isset($_REQUEST['InvId']) ? $_REQUEST['InvId'] : NULL;
+  $amount = isset($_REQUEST['OutSum']) ? $_REQUEST['OutSum'] : NULL;
+  $tid = isset($_REQUEST['InvId']) ? $_REQUEST['InvId'] : NULL;
   $crc = isset($_REQUEST['SignatureValue']) ? $_REQUEST['SignatureValue'] : NULL;
 
   $crc = strtoupper($crc);  // force uppercase
   // build own CRC
-  $my_crc = strtoupper(md5("$out_summ:$inv_id:$mrh_pass2"));
+  $my_crc = strtoupper(md5("$amount:$tid:$mrh_pass2"));
 
-  if ($my_crc == $crc && !empty($inv_id)) {
-    $event = Payer::get_event_pay_node($inv_id);
-    $status = Payer::get_event_pay_status(array('node'=>$event));
+  if ($my_crc == $crc && !empty($tid)) {
+    $vars = array();
+    $vars['tid'] = $tid;
+
+    $transaction = new Payer($vars);
+    $transaction->transaction();
+
+    $status = $transaction->get_transaction();
+    $status = $status['status'];
+
     if($status == 0) {
-      Payer::set_event_pay_status($inv_id, '1');
-      /**
-       * Еще тут можно сделать защиту от 2 зачисления, если статус события уже "Исполнено"
-       */
-      $amount = Payer::get_event_pay_amount(array('node'=>$event));
-      $user = Payer::get_user_object($event->uid);
-      $score = Payer::get_user_balance($user);
-      $balance = Payer::calc_balance_user('1', $score, $amount);
-      Payer::set_user_balance($user, $balance);
-      print 'OK'.$inv_id;
+      $transaction->set_transaction_status(1);
+      $transaction->transaction();
+      print 'OK'.$tid;
     }
     else {
-      watchdog('payer','The transaction @inv_id has already been complete',
-        array('@inv_id' => $inv_id));
+      watchdog('payer','The transaction @tid has already been complete',
+        array('@tid' => $tid));
       print 'The transaction has already been complete!';
     }
     die();
