@@ -154,7 +154,10 @@ function payer_add_transaction($form) {
 }
 
 function payer_add_transaction_validate($form, &$form_state) {
-  dpm('Validate!');
+  $user = user_load_by_name($form_state['values']['payer_transaction_username']);
+  if (empty($user)) {
+    form_set_error('payer_transaction_username', t('User not found.'));
+  }
 }
 
 function payer_add_transaction_submit($form, &$form_state) {
@@ -167,18 +170,20 @@ function payer_add_transaction_submit($form, &$form_state) {
     global $user;
   }
 
-  $fields = array();
-  $fields['uid'] = $user->uid;
-  $fields['status'] = $form_state['values']['payer_transaction_status'];
-  $fields['act'] = $form_state['values']['payer_transaction_act'];
-  $fields['amount'] = $form_state['values']['payer_transaction_amount'];
-  $fields['method'] = $form_state['values']['payer_transaction_method'];
-  $fields['info'] = $form_state['values']['payer_transaction_info'];
-  $fields['created'] = REQUEST_TIME;
+  $vars = array();
+  $vars['uid'] = $user->uid;
+  $vars['status'] = $form_state['values']['payer_transaction_status'];
+  $vars['act'] = $form_state['values']['payer_transaction_act'];
 
-  db_insert('payer_transactions')
-    ->fields($fields)
-    ->execute();
+  $vars['amount'] = $form_state['values']['payer_transaction_amount'];
+  $vars['amount'] = number_format($vars['amount'], 2,'.', '');
+
+  $vars['method'] = $form_state['values']['payer_transaction_method'];
+  $vars['info'] = $form_state['values']['payer_transaction_info'];
+  $vars['created'] = REQUEST_TIME;
+
+  $transaction = new Payer($vars);
+  $transaction->transaction();
 }
 
 /**
@@ -426,7 +431,7 @@ function payer_payment_submit($form, &$form_state)  {
  * Implements hook_form_alter().
  */
 function payer_form_alter(&$form, &$form_state, $form_id) {
-  if($form_id == 'events_pay_node_form') {
+  /*if($form_id == 'events_pay_node_form') {
     if(
       !isset($form['#node']->events_pay_act)
       && !isset($form['#node']->events_pay_status)
@@ -447,10 +452,10 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
       $form['events_pay_comment']['#disabled'] = TRUE;
       $form['actions']['submit']['#access'] = FALSE;
     }
-  }
+  }*/
 
   if($form_id == 'user_profile_form') {
-    $form['payer_wallet']['#access'] = FALSE;
+    //$form['payer_wallet']['#access'] = FALSE;
   }
 }
 
