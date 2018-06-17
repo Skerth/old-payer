@@ -33,10 +33,12 @@ class Payer {
      * Если запрос на существующую транзакцию. Например: нужно получить данные по транзакции или поменять статус транзакции.
      */
     if (isset($this->data['tid'])) {
+      // Если транзакция еще не была загружена в свойства объекта
       if(empty($this->transaction)) {
-        $this->transaction = $this->load_transaction();
+        $this->transaction = $this->load_transaction(); // Загружаем
       }
 
+      // Смена статуса транзакции
       if (isset($this->data['status'])
         && $this->transaction['status'] != $this->data['status']
       ) {
@@ -45,6 +47,7 @@ class Payer {
       }
     }
     else {
+      // Сохранение транзакции
       $this->save_transaction();
       $this->handler_user_balance();
     }
@@ -102,36 +105,6 @@ class Payer {
     return user_load($this->transaction['uid']);
   }
 
-  /**
-   * Получение количества денег в кошельке пользователя
-   **/
-  private function get_user_balance() {
-    $amount_wallet = field_get_items(
-      'user',
-      $this->user,
-      'payer_wallet'
-    );
-
-    if (empty($amount_wallet[0]['value'])) {
-      $amount_wallet[0]['value'] = 0;
-    }
-
-    return $amount_wallet[0]['value'];
-  }
-
-  /**
-   * Вычислить остаток на счету
-   */
-  private function calc_sum_balance() {
-    if ($this->transaction['act'] == 0) {
-      $sum_balance = $this->balance - $this->transaction['amount'];
-    }
-    else {
-      $sum_balance = $this->balance + $this->transaction['amount'];
-    }
-
-    return $sum_balance;
-  }
 
   /**
    * Сохранить статус транзакции
@@ -178,9 +151,46 @@ class Payer {
     // Обновляем баланс только, если статус транзакции "Завершено"
     if ($this->data['status'] == 1) {
       $this->user = $this->get_user_object();
-      $this->balance = $this->get_user_balance();
-      $this->sum_balance = $this->calc_sum_balance();
+      $this->balance = self::get_user_balance($this->user);
+
+      $this->sum_balance = self::calc_sum_balance(
+        $this->transaction['act'],
+        $this->balance,
+        $this->transaction['amount']
+      );
+
       $this->save_user_balance();
     }
+  }
+
+  /**
+   * Вычислить остаток на счету
+   */
+  static public function calc_sum_balance($act, $balance, $amount) {
+    if ($act == 0) {
+      $sum_balance = $balance - $amount;
+    }
+    else {
+      $sum_balance = $balance + $amount;
+    }
+
+    return $sum_balance;
+  }
+
+  /**
+   * Получение количества денег в кошельке пользователя
+   **/
+  static public function get_user_balance($user) {
+    $amount_wallet = field_get_items(
+      'user',
+      $user,
+      'payer_wallet'
+    );
+
+    if (empty($amount_wallet[0]['value'])) {
+      $amount_wallet[0]['value'] = 0;
+    }
+
+    return $amount_wallet[0]['value'];
   }
 }

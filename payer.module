@@ -154,9 +154,19 @@ function payer_add_transaction($form) {
 }
 
 function payer_add_transaction_validate($form, &$form_state) {
+  $act = $form_state['values']['payer_transaction_act'];
+  $amount = $form_state['values']['payer_transaction_amount'];
+
   $user = user_load_by_name($form_state['values']['payer_transaction_username']);
   if (empty($user)) {
     form_set_error('payer_transaction_username', t('User not found.'));
+  }
+
+  $balance = Payer::get_user_balance($user);
+  $sum_balance = Payer::calc_sum_balance($act, $balance, $amount);
+
+  if (isset($amount) && $act == 0 && $sum_balance < 0) {
+    form_set_error('payer_transaction_amount', t('Insufficient funds!'));
   }
 }
 
@@ -184,39 +194,6 @@ function payer_add_transaction_submit($form, &$form_state) {
 
   $transaction = new Payer($vars);
   $transaction->transaction();
-}
-
-/**
- * Валидация формы создания типа материала "events_pay"
- **/
-function payer_validate_event_pay_node($form, &$form_state) {
-  $act = $form_state['values']['events_pay_act']['und'][0]['value'];
-  $status = $form_state['values']['events_pay_status']['und'][0]['value'];
-  $amount = $form_state['values']['events_pay_amount']['und'][0]['value'];
-  $user = user_load_by_name($form_state['values']['name']);
-  $amount_wallet = field_get_items( 'user' , $user, 'payer_wallet' );
-  $amount_wallet = $amount_wallet[0]['value'];
-
-  if (isset($amount) && $act == 0 && ($amount_wallet - $amount) < 0) {
-    form_set_error('events_pay_amount', t('Insufficient funds!'));
-  }
-}
-
-/**
- * Обработчик формы создания типа материала "events_pay" после валидации
- **/
-function payer_create_event_pay_node($form, &$form_state) {
-  $user = user_load_by_name($form_state['values']['name']);
-  $vars = array(
-    'uid' => $user->uid,
-    'act' => $form_state['values']['events_pay_act']['und'][0]['value'],
-    'status' => $form_state['values']['events_pay_status']['und'][0]['value'],
-    'amount' => $form_state['values']['events_pay_amount']['und'][0]['value'],
-    'comment' => $form_state['values']['events_pay_comment']['und'][0]['value'],
-  );
-
-  $event = new Payer($vars);
-  $event->handler_event_pay();
 }
 
 /**
@@ -431,31 +408,8 @@ function payer_payment_submit($form, &$form_state)  {
  * Implements hook_form_alter().
  */
 function payer_form_alter(&$form, &$form_state, $form_id) {
-  /*if($form_id == 'events_pay_node_form') {
-    if(
-      !isset($form['#node']->events_pay_act)
-      && !isset($form['#node']->events_pay_status)
-      && !isset($form['#node']->events_pay_amount)
-    ) {
-      unset($form['title']);
-      // Добавление валидации
-      $form['#validate'][] = 'payer_validate_event_pay_node';
-      // Полностью заменяем стандартный обработчик формы
-      $form['actions']['submit']['#submit'] = array('payer_create_event_pay_node');
-    }
-    else {
-      drupal_set_message(t('You can\'t edit an already created event'), 'warning');
-      $form['title']['#disabled'] = TRUE;
-      $form['events_pay_act']['#disabled'] = TRUE;
-      $form['events_pay_status']['#disabled'] = TRUE;
-      $form['events_pay_amount']['#disabled'] = TRUE;
-      $form['events_pay_comment']['#disabled'] = TRUE;
-      $form['actions']['submit']['#access'] = FALSE;
-    }
-  }*/
-
   if($form_id == 'user_profile_form') {
-    //$form['payer_wallet']['#access'] = FALSE;
+    $form['payer_wallet']['#access'] = FALSE;
   }
 }
 
