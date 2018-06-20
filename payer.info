@@ -13,4 +13,4 @@ configure = admin/config/payer
 files[] = payer.install
 files[] = payer.module
 
-files[] = includes/payer.inc
+files[] = includes/payer.transaction.inc
