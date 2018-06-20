@@ -22,15 +22,6 @@ function payer_robokassa_menu() {
     'access arguments' => array('administer site configuration'),
   );
 
-/*  $items['payer/robokassa'] = array(
-    'title' => 'Robokassa',
-    'description' => 'Payment Robokassa.',
-    'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('payer_robokassa_payment'),
-    'access callback' => TRUE,
-  );*/
-
   $items[$urls['result']] = array(
     'title' => 'Robokassa Result',
     'type' => MENU_CALLBACK,
@@ -230,7 +221,7 @@ function payer_robokassa_handler($uid, $amount) {
     'method' => 'Robokassa',
   );
 
-  $refill = new Payer($vars);
+  $refill = new PayerTransaction($vars);
   $refill->transaction();
   $transaction = $refill->get_transaction();
   $tid = $transaction['tid'];
@@ -262,7 +253,7 @@ function payer_robokassa_result_page() {
     $vars = array();
     $vars['tid'] = $tid;
 
-    $transaction = new Payer($vars);
+    $transaction = new PayerTransaction($vars);
     $transaction->transaction();
 
     $status = $transaction->get_transaction();
@@ -274,7 +265,7 @@ function payer_robokassa_result_page() {
       print 'OK'.$tid;
     }
     else {
-      watchdog('payer','The transaction @tid has already been complete',
+      watchdog('Payer','The transaction @tid has already been complete',
         array('@tid' => $tid));
       print 'The transaction has already been complete!';
     }
