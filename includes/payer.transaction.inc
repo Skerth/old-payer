@@ -1,26 +1,47 @@
 <?php
 
-class Payer {
+class PayerTransaction {
 
+  /**
+   * Data received by the object PayerTransaction.
+   * Possible array keys:
+   *   - 'tid': transaction TID. Transmitted if you want to work with an
+   *      existing transaction;
+   *   - 'uid': user UID. Example: $user->uid;
+   *   - 'status': transaction status. Can be "0" (Waiting) or "1" (Completed);
+   *   - 'act': transaction action. Can be "0" (Spending) or "1" (Coming);
+   *   - 'amount': the amount of replenishment or cancellation from the user's
+   *      wallet. Should be a floating number with a decimal separator
+   *      in the form of a dot;
+   *   - 'method': selected payment method. Plain text string.
+   *      Example: Manual, Robokassa, PayPal;
+   *   - 'info': comment on the transaction or any other information.
+   *      Example: Manual, Robokassa, PayPal;
+   *   - 'created': date of transaction creation. Should be in Unixtime.
+   */
   private $data = [];
 
+  /**
+   * All properties of the current object. Contains the same list
+   * as @var array $data. To get the properties, you can call the
+   * method $this->get_transaction().
+   */
   private $transaction = [];
 
   /**
-   * Объект пользователя Drupal
+   * User object Drupal.
    **/
   private $user;
 
   /**
-   * Количество денег на счету пользователя поле "payer_wallet"
+   * The amount of money on the user's account. User field "payer_wallet".
    **/
   private $balance;
 
   /**
-   * Сколько денег останется после действий с кошельком:
-   *   а) при расходе (0) - разность $wallet и $amount
-   *   б) при приходе (1) - сумма $wallet и $amount
-   * кошелек пользователя
+   * How much money will remain after the action with the wallet:
+   *   a) when wasting money: ['act'] = 0 - difference $wallet and $amount;
+   *   b) when replenishing money: ['act'] = 1 - sum $wallet and $amount.
    **/
   private $sum_balance;
 
@@ -30,15 +51,17 @@ class Payer {
 
   public function transaction() {
     /**
-     * Если запрос на существующую транзакцию. Например: нужно получить данные по транзакции или поменять статус транзакции.
+     * If the request for an existing transaction. Example: you need to get
+     * transaction data or change the status of a transaction.
      */
     if (isset($this->data['tid'])) {
-      // Если транзакция еще не была загружена в свойства объекта
+      // If the transaction has not yet been loaded into the properties
+      // of the object
       if(empty($this->transaction)) {
-        $this->transaction = $this->load_transaction(); // Загружаем
+        $this->transaction = $this->load_transaction(); // download.
       }
 
-      // Смена статуса транзакции
+      // Change of transaction status.
       if (isset($this->data['status'])
         && $this->transaction['status'] != $this->data['status']
       ) {
@@ -47,16 +70,17 @@ class Payer {
       }
     }
     else {
-      // Сохранение транзакции
+      // Saving a transaction.
       $this->save_transaction();
       $this->handler_user_balance();
     }
   }
 
   /**
-   * Установить статус транзакции
+   * Set transaction status.
    *
-   * @param $status
+   * @param $status - transaction status.
+   *        Can be "0" (Waiting) or "1" (Completed).
    */
   public function set_transaction_status($status) {
     if(!empty($status)) {
@@ -65,7 +89,7 @@ class Payer {
   }
 
   /**
-   * Получить транзакцию из базы данных в виде массива
+   * Get a transaction from the database as an array.
    */
   private function load_transaction() {
     return db_select('payer_transactions', 't')
@@ -85,19 +109,19 @@ class Payer {
   }
 
   /**
-   * Возвращает транзакцию из текущего объекта
+   * Returns transaction properties from the current object as an array.
    *
-   * @return array
+   * @return array $this->transaction.
    */
   public function get_transaction() {
     return $this->transaction;
   }
 
   /**
-   * Получить объект пользователя по uid
+   * Get a user object by UID.
    **/
   private function get_user_object() {
-    // Если uid не был передан загружаем текущего пользователя
+    // If uid has not been transferred, load the current user.
     if (!isset($this->transaction['uid'])) {
       global $user;
       $this->transaction['uid'] = $user->uid;
@@ -105,9 +129,8 @@ class Payer {
     return user_load($this->transaction['uid']);
   }
 
-
   /**
-   * Сохранить статус транзакции
+   * Save transaction status.
    */
   private function save_transaction_status() {
     db_update('payer_transactions')
@@ -117,7 +140,7 @@ class Payer {
   }
 
   /**
-   * Запись вычисленного значения "$this->sum_balance" в базу
+   * Record the calculated value of "$this->sum_balance" in the database.
    **/
   private function save_user_balance() {
     $this->user->payer_wallet['und'][0]['value'] = $this->sum_balance;
@@ -133,6 +156,9 @@ class Payer {
     cache_clear_all("field:user:{$this->user->uid}", 'cache_field');
   }
 
+  /**
+   * Saving a new transaction to the database.
+   */
   private function save_transaction() {
     $this->transaction['uid'] = $this->data['uid'];
     $this->transaction['status'] = $this->data['status'];
@@ -147,8 +173,10 @@ class Payer {
       ->execute();
   }
 
+  /**
+   * Processes user balance. Performed if the status of transaction 1 (Completed).
+   */
   private function handler_user_balance() {
-    // Обновляем баланс только, если статус транзакции "Завершено"
     if ($this->data['status'] == 1) {
       $this->user = $this->get_user_object();
       $this->balance = self::get_user_balance($this->user);
@@ -164,7 +192,12 @@ class Payer {
   }
 
   /**
-   * Вычислить остаток на счету
+   * Calculate account balance
+   * @param $act - transaction action. Can be "0" (Spending) or "1" (Coming);
+   * @param $balance - current user balance;
+   * @param $amount - amount of replenishment or write-offs.
+   *
+   * @return float $sum_balance - the value obtained.
    */
   static public function calc_sum_balance($act, $balance, $amount) {
     if ($act == 0) {
@@ -178,7 +211,7 @@ class Payer {
   }
 
   /**
-   * Получение количества денег в кошельке пользователя
+   * Getting the amount of money in the user's wallet.
    **/
   static public function get_user_balance($user) {
     $amount_wallet = field_get_items(
