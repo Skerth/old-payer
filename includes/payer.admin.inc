@@ -174,7 +174,7 @@ function payer_transactions_list_filter_form($form) {
     '#title' => t('Act'),
     '#default_value' => isset($session['act']) ? $session['act'] : '',
     '#options' => array(
-      'any' => '- Any -',
+      '[any]' => '- Any -',
       0 => 'Spending',
       1 => 'Coming',
     ),
@@ -185,7 +185,7 @@ function payer_transactions_list_filter_form($form) {
     '#title' => t('Status'),
     '#default_value' => isset($session['status'])  ? $session['status'] : '',
     '#options' => array(
-      'any' => '- Any -',
+      '[any]' => '- Any -',
       0 => 'Waiting',
       1 => 'Completed',
     ),
@@ -214,7 +214,7 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
   else {
     $filters = payer_transaction_filters();
     foreach ($filters as $filter => $options) {
-      if($form_state['values'][$filter] != 'any') {
+      if($form_state['values'][$filter] != '' && $form_state['values'][$filter] != '[any]') {
         $_SESSION['payer_transaction_overview_filter'][$filter] = $form_state['values'][$filter];
       }
       else {
