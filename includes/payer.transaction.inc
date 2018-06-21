@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * The main class of the Payer for working with transactions
+ */
+
 class PayerTransaction {
 
   /**

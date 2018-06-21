@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file Payer engine module
+ */
+
+/**
  * Implements hook_init().
  */
 function payer_init() {

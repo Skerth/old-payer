@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Provides the Payer administrative interface.
+ */
+
+/**
  * Form of settings where you can change the URL of the purse replenishment page
  */
 function payer_settings($form) {
