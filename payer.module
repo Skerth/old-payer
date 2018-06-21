@@ -81,6 +81,9 @@ function payer_menu() {
 
 /**
  * Implement hook_theme().
+ *
+ * @see payer_methods_list()
+ * @see payer_transactions_list()
  */
 function payer_theme(){
   return array(
@@ -99,6 +102,8 @@ function payer_theme(){
 
 /**
  * Form on the purse recharge page
+ *
+ * @see _get_methods()
  */
 function payer_payment($form) {
   $form['#attributes'] = array('class' => array('payer-form-payment'));
@@ -181,8 +186,6 @@ function payer_payment_submit($form, &$form_state)  {
 
   $pay_handler = $method.'_handler';
   $pay_handler($user->uid, $amount);
-
-  return TRUE;
 }
 
 /**
@@ -196,6 +199,9 @@ function payer_form_alter(&$form, &$form_state, $form_id) {
 
 /**
  * Receives all payment methods from the module folder "payer/methods"
+ *
+ * @see payer_payment()
+ * @see payer_methods_list()
  */
 function _get_methods() {
   $dir_methods = DRUPAL_ROOT . '/' . drupal_get_path('module', 'payer') . '/methods' ;

@@ -11,7 +11,9 @@
  */
 
 /**
- * Form of settings where you can change the URL of the purse replenishment page
+ * Form of settings where you can change the URL of the purse replenishment page.
+ *
+ * @see payer_settings_submit()
  */
 function payer_settings($form) {
   $form['payer_payment_url'] = array(
@@ -29,7 +31,9 @@ function payer_settings($form) {
 }
 
 /**
- * Module configuration form handler
+ * Module configuration form handler.
+ *
+ * @see payer_settings()
  */
 function payer_settings_submit($form, &$form_state) {
   $payment_url = variable_get('payer_payment_url');
@@ -45,6 +49,10 @@ function payer_settings_submit($form, &$form_state) {
  * PAGE TRANSACTIONS LIST
  */
 
+/**
+ * Contains a list of possible transaction filters.
+ * @return array $filters
+ */
 function payer_transaction_filters(){
   $filters = array(
     'tid' => '',
@@ -79,7 +87,12 @@ function payer_build_filter_transactions_query(SelectQueryInterface $query) {
 }
 
 /**
- * Output of all available transactions with sorting capability
+ * Output of all available transactions with sorting capability.
+ *
+ * @see payer_build_filter_transactions_query()
+ * @see payer_transactions_list_filter_form()
+ * @see payer_transactions_list_filter_form_submit()
+ * @see payer_theme()
  */
 function payer_transactions_list() {
   $header = array(
@@ -146,6 +159,14 @@ function payer_transactions_list() {
   );
 }
 
+/**
+ * Description of the form of the filtering of transactions.
+ *
+ * @see payer_transactions_list_filter_form_submit()
+ *
+ * @param $form
+ * @return mixed $form
+ */
 function payer_transactions_list_filter_form($form) {
   $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
 
@@ -226,6 +247,12 @@ function payer_transactions_list_filter_form($form) {
   return $form;
 }
 
+/**
+ * Submit handler of the transactions filter form.
+ *
+ * @see payer_transactions_list_filter_form()
+ * @see payer_transaction_filters()
+ */
 function payer_transactions_list_filter_form_submit($form, &$form_state) {
   if($form_state['values']['op'] == t("Reset")) {
     $_SESSION['payer_transaction_overview_filter'] = array();
@@ -250,6 +277,9 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
 
 /**
  * Description of the form of adding a transaction
+ *
+ * @see payer_add_transaction_validate()
+ * @see payer_add_transaction_submit()
  */
 function payer_add_transaction($form) {
   $form['payer_transaction_amount'] = array(
@@ -317,6 +347,9 @@ function payer_add_transaction($form) {
 
 /**
  * Validation of the form of adding a transaction
+ *
+ * @see payer_add_transaction()
+ * @see PayerTransaction
  */
 function payer_add_transaction_validate($form, &$form_state) {
   $act = $form_state['values']['payer_transaction_act'];
@@ -341,6 +374,9 @@ function payer_add_transaction_validate($form, &$form_state) {
 
 /**
  * Submit handler of the form of adding a transaction
+ *
+ * @see payer_add_transaction()
+ * @see PayerTransaction
  */
 function payer_add_transaction_submit($form, &$form_state) {
   $username = $form_state['values']['payer_transaction_username'];
@@ -375,6 +411,9 @@ function payer_add_transaction_submit($form, &$form_state) {
 
 /**
  * Handler of the pages of the list of methods of the module Payer
+ *
+ * @see _get_methods()
+ * @see payer_theme()
  **/
 function payer_methods_list() {
   $existing_methods = _get_methods();

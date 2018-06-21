@@ -54,13 +54,13 @@ function payer_schema() {
       ),
       'info' => array(
         'type' => 'varchar',
-        'not null' => TRUE,
+        'not null' => FALSE,
         'length' => 255,
         'default' => '',
       ),
       'method' => array(
         'type' => 'varchar',
-        'not null' => TRUE,
+        'not null' => FALSE,
         'length' => 255,
         'default' => '',
       ),

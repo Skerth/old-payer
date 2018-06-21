@@ -54,6 +54,14 @@ class PayerTransaction {
     $this->data = $vars;
   }
 
+  /**
+   * Main transaction handler.
+   *
+   * @see load_transaction()
+   * @see save_transaction()
+   * @see handler_user_balance()
+   * @see save_transaction_status()
+   */
   public function transaction() {
     /**
      * If the request for an existing transaction. Example: you need to get
@@ -180,6 +188,11 @@ class PayerTransaction {
 
   /**
    * Processes user balance. Performed if the status of transaction 1 (Completed).
+   *
+   * @see get_user_object()
+   * @see get_user_balance()
+   * @see calc_sum_balance()
+   * @see save_user_balance()
    */
   private function handler_user_balance() {
     if ($this->data['status'] == 1) {
