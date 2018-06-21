@@ -35,6 +35,16 @@ function payer_settings_submit($form, &$form_state) {
   }
 }
 
+function payer_transaction_filters(){
+  $filters = array(
+    'username' => '',
+    'act' => '',
+    'status' => '',
+  );
+
+  return $filters;
+};
+
 /**
  * Applies filters for transactions administration filters based on session.
  *
@@ -42,22 +52,18 @@ function payer_settings_submit($form, &$form_state) {
  *   A SelectQuery to which the filters should be applied.
  */
 function payer_build_filter_transactions_query(SelectQueryInterface $query) {
-  // Build query
   $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
-
-  if(isset($session['username'])) {
-    $user = user_load_by_name($session['username']);
-    if($user != FALSE) {
-      $query->condition('t.uid', $user->uid);
+  // Build conditions query
+  foreach ($session as $filter => $options) {
+    if($filter == 'username') {
+      $user = user_load_by_name($session['username']);
+      if($user != FALSE) {
+        $query->condition('t.uid', $user->uid);
+      }
     }
-  }
-
-  if(isset($session['act'])) {
-    $query->condition('t.act', $session['act']);
-  }
-
-  if(isset($session['status'])) {
-    $query->condition('t.status', $session['status']);
+    else {
+      $query->condition('t.'.$filter, $session[$filter]);
+    }
   }
 }
 
@@ -132,12 +138,6 @@ function payer_transactions_list() {
 function payer_transactions_list_filter_form($form) {
   $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
 
-  $values = array();
-
-  foreach ($session as $key => $value) {
-    $values[$key] = $value;
-  }
-
   $form['filters'] = array(
     '#type' => 'fieldset',
     '#title' => t('Show only items where'),
@@ -165,14 +165,14 @@ function payer_transactions_list_filter_form($form) {
     '#title' => t('Username'),
     '#autocomplete_path' => 'user/autocomplete',
     '#size' => '23',
-    '#default_value' => isset($values['username']) ? $values['username'] : '',
+    '#default_value' => isset($session['username']) ? $session['username'] : '',
     '#maxlength' => '60',
   );
 
   $form['filters']['items']['filters']['act'] = array(
     '#type' => 'select',
     '#title' => t('Act'),
-    '#default_value' => isset($values['act']) ? $values['act'] : '',
+    '#default_value' => isset($session['act']) ? $session['act'] : '',
     '#options' => array(
       'any' => '- Any -',
       0 => 'Spending',
@@ -183,7 +183,7 @@ function payer_transactions_list_filter_form($form) {
   $form['filters']['items']['filters']['status'] = array(
     '#type' => 'select',
     '#title' => t('Status'),
-    '#default_value' => isset($values['status'])  ? $values['status'] : '',
+    '#default_value' => isset($session['status'])  ? $session['status'] : '',
     '#options' => array(
       'any' => '- Any -',
       0 => 'Waiting',
@@ -212,23 +212,14 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
     $_SESSION['payer_transaction_overview_filter'] = array();
   }
   else {
-    if(!empty($form_state['values']['username'])) {
-      $_SESSION['payer_transaction_overview_filter']['username'] = $form_state['values']['username'];
-    }
-    else {
-      unset($_SESSION['payer_transaction_overview_filter']['username']);
-    }
-    if($form_state['values']['act'] != 'any') {
-      $_SESSION['payer_transaction_overview_filter']['act'] = $form_state['values']['act'];
-    }
-    else {
-      unset($_SESSION['payer_transaction_overview_filter']['act']);
-    }
-    if($form_state['values']['status'] != 'any') {
-      $_SESSION['payer_transaction_overview_filter']['status'] = $form_state['values']['status'];
-    }
-    else {
-      unset($_SESSION['payer_transaction_overview_filter']['status']);
+    $filters = payer_transaction_filters();
+    foreach ($filters as $filter => $options) {
+      if($form_state['values'][$filter] != 'any') {
+        $_SESSION['payer_transaction_overview_filter'][$filter] = $form_state['values'][$filter];
+      }
+      else {
+        unset($_SESSION['payer_transaction_overview_filter'][$filter]);
+      }
     }
   }
 }
