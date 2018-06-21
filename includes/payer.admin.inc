@@ -5,6 +5,11 @@
  * Provides the Payer administrative interface.
  */
 
+
+/**
+ * PAGE SETTINGS
+ */
+
 /**
  * Form of settings where you can change the URL of the purse replenishment page
  */
@@ -35,8 +40,14 @@ function payer_settings_submit($form, &$form_state) {
   }
 }
 
+
+/**
+ * PAGE TRANSACTIONS LIST
+ */
+
 function payer_transaction_filters(){
   $filters = array(
+    'tid' => '',
     'username' => '',
     'act' => '',
     'status' => '',
@@ -74,11 +85,11 @@ function payer_transactions_list() {
   $header = array(
     array('data' => 'ID', 'field' => 'tid'),
     array('data' => 'User', 'field' => 'uid'),
-    array('data' => 'Created', 'field' => 'created'),
     array('data' => 'Amount', 'field' => 'amount'),
     array('data' => 'Act', 'field' => 'act'),
     array('data' => 'Status', 'field' => 'status'),
     array('data' => 'Method', 'field' => 'method'),
+    array('data' => 'Created', 'field' => 'created'),
     array('data' => 'Info', 'field' => 'info'),
   );
 
@@ -111,7 +122,6 @@ function payer_transactions_list() {
     $rows[] = array(
       l($transaction->tid, url('admin/config/payer/transactions/'.$transaction->tid)),
       $user_link,
-      format_date($transaction->created, $type = 'short'),
       array(
         'data'  => $transaction->amount,
         'class' => array('transaction-amount', 'transaction-amount-'.$transaction->act)
@@ -119,6 +129,7 @@ function payer_transactions_list() {
       $transaction->act ? 'Coming':'Spending',
       $transaction->status ? 'Completed':'Waiting',
       $transaction->method,
+      format_date($transaction->created, $type = 'short'),
       $transaction->info,
     );
   }
@@ -158,6 +169,14 @@ function payer_transactions_list_filter_form($form) {
   $form['filters']['items']['filters'] = array(
     '#type' => 'container',
     '#attributes' => array('class' => array('exposed-filters')),
+  );
+
+  $form['filters']['items']['filters']['tid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Transaction ID'),
+    '#size' => '23',
+    '#default_value' => isset($session['tid']) ? $session['tid'] : '',
+    '#maxlength' => '60',
   );
 
   $form['filters']['items']['filters']['username'] = array(
@@ -223,6 +242,11 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
     }
   }
 }
+
+
+/**
+ * PAGE ADD TRANSACTION
+ */
 
 /**
  * Description of the form of adding a transaction
@@ -343,6 +367,11 @@ function payer_add_transaction_submit($form, &$form_state) {
   $transaction = new PayerTransaction($vars);
   $transaction->transaction();
 }
+
+
+/**
+ * PAGE METHODS PAYMENT LIST
+ */
 
 /**
  * Handler of the pages of the list of methods of the module Payer

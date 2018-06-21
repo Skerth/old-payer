@@ -5,7 +5,7 @@ version = "7.x-1.0"
 package = "Payment"
 dependencies[] = payer
 
-configure = admin/config/payer/robokassa
+configure = admin/config/payer/methods/robokassa
 
 files[] = robokassa.module
 files[] = robokassa.inc

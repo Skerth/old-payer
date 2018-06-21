@@ -45,17 +45,6 @@ function payer_menu() {
     'file' => 'includes/payer.admin.inc',
   );
 
-  $items['admin/config/payer/methods'] = array(
-    'title' => 'Payment methods',
-    'description' => 'Connected payment methods.',
-    'type' => MENU_LOCAL_TASK,
-    'page callback' => 'payer_methods_list',
-    'access callback' => 'user_access',
-    'access arguments' => array('administer site configuration'),
-    'weight' => '-49',
-    'file' => 'includes/payer.admin.inc',
-  );
-
   $items['admin/config/payer/settings'] = array(
     'title' => 'Settings',
     'description' => 'Configure Payer.',
@@ -64,7 +53,18 @@ function payer_menu() {
     'page arguments' => array('payer_settings'),
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
-    'weight' => '-48',
+    'weight' => '-49',
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items['admin/config/payer/methods'] = array(
+    'title' => 'Payment methods',
+    'description' => 'Connected payment methods.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'payer_methods_list',
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'weight' => '0',
     'file' => 'includes/payer.admin.inc',
   );
 

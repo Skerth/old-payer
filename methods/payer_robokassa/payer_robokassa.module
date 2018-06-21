@@ -12,10 +12,10 @@ function payer_robokassa_menu() {
     'fail' => variable_get('payer_robokassa_url_fail')
   );
 
-  $items['admin/config/payer/robokassa'] = array(
+  $items['admin/config/payer/methods/robokassa'] = array(
     'title' => 'Robokassa',
     'description' => 'Configure settings Payer Robokassa.',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('payer_robokassa_settings'),
     'access callback' => 'user_access',
