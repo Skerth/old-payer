@@ -1,5 +1,9 @@
 <div id="content" class="clearfix">
   <style>
+    .exposed-filters {
+      float: left;
+      margin-right: 10px;
+    }
     table tr:hover td {
       background: #e0e1db !important;
     }
