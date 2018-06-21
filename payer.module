@@ -20,31 +20,42 @@ function payer_menu() {
 
   $items['admin/config/payer'] = array(
     'title' => 'Payer',
-    'description' => 'Connected payment methods.',
+    'description' => 'All transactions.',
     'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'payer_methods_list',
+    'page callback' => 'payer_transactions_list',
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
     'file' => 'includes/payer.admin.inc',
   );
   // описание дефолтной вкладки
-  $items['admin/config/payer/methods'] = array(
-    'title' => 'Methods',
+  $items['admin/config/payer/transactions'] = array(
+    'title' => 'Transactions',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => '-50',
-    'file' => 'includes/payer.admin.inc',
   );
-  $items['admin/config/payer/add-transaction'] = array(
+
+  $items['admin/config/payer/add'] = array(
     'title' => 'Add transaction',
     'description' => 'Configure Payer.',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('payer_add_transaction'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'includes/payer.admin.inc',
+  );
+
+  $items['admin/config/payer/methods'] = array(
+    'title' => 'Payment methods',
+    'description' => 'Connected payment methods.',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'payer_methods_list',
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
     'weight' => '-49',
     'file' => 'includes/payer.admin.inc',
   );
+
   $items['admin/config/payer/settings'] = array(
     'title' => 'Settings',
     'description' => 'Configure Payer.',
@@ -73,9 +84,14 @@ function payer_menu() {
  */
 function payer_theme(){
   return array(
-    'config_page_template' => array(
-      // file name will be payer-config.tpl.php
-      'template' => 'templates/payer-config',
+    'payer_template_methods_list' => array(
+      // file name will be payer-methods-list.tpl.php
+      'template' => 'templates/payer-methods-list',
+      'variables' => array('page_data' => NULL),
+    ),
+    'payer_template_transactions_list' => array(
+      // file name will be payer-transactions-list.tpl.php
+      'template' => 'templates/payer-transactions-list',
       'variables' => array('page_data' => NULL),
     ),
   );
