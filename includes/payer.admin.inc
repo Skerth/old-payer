@@ -36,6 +36,32 @@ function payer_settings_submit($form, &$form_state) {
 }
 
 /**
+ * Applies filters for transactions administration filters based on session.
+ *
+ * @param $query
+ *   A SelectQuery to which the filters should be applied.
+ */
+function payer_build_filter_transactions_query(SelectQueryInterface $query) {
+  // Build query
+  $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
+
+  if(isset($session['username'])) {
+    $user = user_load_by_name($session['username']);
+    if($user != FALSE) {
+      $query->condition('t.uid', $user->uid);
+    }
+  }
+
+  if(isset($session['act'])) {
+    $query->condition('t.act', $session['act']);
+  }
+
+  if(isset($session['status'])) {
+    $query->condition('t.status', $session['status']);
+  }
+}
+
+/**
  * Output of all available transactions with sorting capability
  */
 function payer_transactions_list() {
@@ -50,8 +76,9 @@ function payer_transactions_list() {
     array('data' => 'Info', 'field' => 'info'),
   );
 
-  $transactions = db_select('payer_transactions', 't')
-    ->fields('t',
+  // Generate query to database
+  $query = db_select('payer_transactions', 't');
+  $query->fields('t',
       array(
         'tid',
         'uid',
@@ -66,8 +93,9 @@ function payer_transactions_list() {
     ->extend('PagerDefault')
     ->limit(25)
     ->extend('TableSort')
-    ->orderByHeader($header)
-    ->execute();
+    ->orderByHeader($header);
+  payer_build_filter_transactions_query($query);
+  $transactions = $query->execute();
 
   $rows = array();
   foreach ($transactions as $transaction) {
@@ -88,8 +116,10 @@ function payer_transactions_list() {
       $transaction->info,
     );
   }
+  $filter_form = drupal_get_form('payer_transactions_list_filter_form');
 
-  $page_data = theme('table', array('header' => $header, 'rows' => $rows));
+  $page_data = drupal_render($filter_form);
+  $page_data .= theme('table', array('header' => $header, 'rows' => $rows));
   $page_data .= theme('pager');
 
 
@@ -97,6 +127,110 @@ function payer_transactions_list() {
     'payer_template_transactions_list',
     array('page_data' => $page_data)
   );
+}
+
+function payer_transactions_list_filter_form($form) {
+  $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
+
+  $values = array();
+
+  foreach ($session as $key => $value) {
+    $values[$key] = $value;
+  }
+
+  $form['filters'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Show only items where'),
+    '#weight' => 0,
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+    '#attributes' => array(
+      'class' => array('clearfix')
+    ),
+  );
+
+  $form['filters']['items'] = array(
+    '#type' => 'container',
+    '#attributes' => array('class' => array('clearfix')),
+  );
+
+  $form['filters']['items']['filters'] = array(
+    '#type' => 'container',
+    '#attributes' => array('class' => array('exposed-filters')),
+  );
+
+  $form['filters']['items']['filters']['username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Username'),
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => '23',
+    '#default_value' => isset($values['username']) ? $values['username'] : '',
+    '#maxlength' => '60',
+  );
+
+  $form['filters']['items']['filters']['act'] = array(
+    '#type' => 'select',
+    '#title' => t('Act'),
+    '#default_value' => isset($values['act']) ? $values['act'] : '',
+    '#options' => array(
+      'any' => '- Any -',
+      0 => 'Spending',
+      1 => 'Coming',
+    ),
+  );
+
+  $form['filters']['items']['filters']['status'] = array(
+    '#type' => 'select',
+    '#title' => t('Status'),
+    '#default_value' => isset($values['status'])  ? $values['status'] : '',
+    '#options' => array(
+      'any' => '- Any -',
+      0 => 'Waiting',
+      1 => 'Completed',
+    ),
+  );
+
+  $form['filters']['items']['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Filter'),
+  );
+
+  if(count($session)) {
+    $form['filters']['items']['actions']['reset'] = array(
+      '#type' => 'submit',
+      '#value' => t('Reset'),
+    );
+  }
+  $form['#submit'][] = 'payer_transactions_list_filter_form_submit';
+
+  return $form;
+}
+
+function payer_transactions_list_filter_form_submit($form, &$form_state) {
+  if($form_state['values']['op'] == t("Reset")) {
+    $_SESSION['payer_transaction_overview_filter'] = array();
+  }
+  else {
+    if(!empty($form_state['values']['username'])) {
+      $_SESSION['payer_transaction_overview_filter']['username'] = $form_state['values']['username'];
+    }
+    else {
+      unset($_SESSION['payer_transaction_overview_filter']['username']);
+    }
+    if($form_state['values']['act'] != 'any') {
+      $_SESSION['payer_transaction_overview_filter']['act'] = $form_state['values']['act'];
+    }
+    else {
+      unset($_SESSION['payer_transaction_overview_filter']['act']);
+    }
+    if($form_state['values']['status'] != 'any') {
+      $_SESSION['payer_transaction_overview_filter']['status'] = $form_state['values']['status'];
+    }
+    else {
+      unset($_SESSION['payer_transaction_overview_filter']['status']);
+    }
+  }
 }
 
 /**
