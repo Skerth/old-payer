@@ -54,12 +54,14 @@ function payer_settings_submit($form, &$form_state) {
  * @return array $filters
  */
 function payer_transaction_filters(){
-  $filters = array(
-    'tid' => '',
-    'username' => '',
-    'act' => '',
-    'status' => '',
+  $keys = array(
+    'tid',
+    'username',
+    'act',
+    'status',
   );
+
+  $filters = array_fill_keys($keys, NULL);
 
   return $filters;
 };
@@ -142,7 +144,7 @@ function payer_transactions_list() {
       $transaction->act ? 'Coming':'Spending',
       $transaction->status ? 'Completed':'Waiting',
       $transaction->method,
-      format_date($transaction->created, $type = 'short'),
+      format_date($transaction->created, 'short'),
       $transaction->info,
     );
   }
@@ -272,6 +274,29 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
 
 
 /**
+ * PAGE VIEW TRANSACTION
+ */
+
+/**
+ *
+ */
+function payer_transaction_view($tid){
+  $vars = array('tid'=>$tid);
+  $transaction = new PayerTransaction($vars);
+  $transaction->transaction();
+  $transaction = $transaction->get_transaction();
+
+  if($transaction) {
+    return theme(
+      'payer_template_transaction_view',
+      array('transaction' => $transaction)
+    );
+  }
+
+  drupal_not_found();
+}
+
+/**
  * PAGE ADD TRANSACTION
  */
 
@@ -281,7 +306,7 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
  * @see payer_add_transaction_validate()
  * @see payer_add_transaction_submit()
  */
-function payer_add_transaction($form) {
+function payer_add_transaction_form($form) {
   $form['payer_transaction_amount'] = array(
     '#type' => 'textfield',
     '#title' => t('Amount'),
@@ -348,10 +373,10 @@ function payer_add_transaction($form) {
 /**
  * Validation of the form of adding a transaction
  *
- * @see payer_add_transaction()
+ * @see payer_add_transaction_form()
  * @see PayerTransaction
  */
-function payer_add_transaction_validate($form, &$form_state) {
+function payer_add_transaction_form_validate($form, &$form_state) {
   $act = $form_state['values']['payer_transaction_act'];
   $amount = $form_state['values']['payer_transaction_amount'];
 
@@ -375,10 +400,10 @@ function payer_add_transaction_validate($form, &$form_state) {
 /**
  * Submit handler of the form of adding a transaction
  *
- * @see payer_add_transaction()
+ * @see payer_add_transaction_form()
  * @see PayerTransaction
  */
-function payer_add_transaction_submit($form, &$form_state) {
+function payer_add_transaction_form_submit($form, &$form_state) {
   $username = $form_state['values']['payer_transaction_username'];
 
   if(!empty($username)) {
