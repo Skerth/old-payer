@@ -45,6 +45,16 @@ function payer_menu() {
     'file' => 'includes/payer.admin.inc',
   );
 
+  $items['admin/config/payer/transactions/%'] = array(
+    'title' => 'Transaction',
+    'type' => MENU_SUGGESTED_ITEM,
+    'page callback' => 'payer_transaction_view',
+    'page arguments' => array(4),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'includes/payer.admin.inc',
+  );
+
   $items['admin/config/payer/settings'] = array(
     'title' => 'Settings',
     'description' => 'Configure Payer.',
@@ -96,6 +106,11 @@ function payer_theme(){
       // file name will be payer-transactions-list.tpl.php
       'template' => 'templates/payer-transactions-list',
       'variables' => array('page_data' => NULL),
+    ),
+    'payer_template_transaction_view' => array(
+      // file name will be payer-transaction-view.tpl.php
+      'template' => 'templates/payer-transaction-view',
+      'variables' => array('transaction' => NULL),
     ),
   );
 }
