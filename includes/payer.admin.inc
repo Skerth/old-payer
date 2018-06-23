@@ -59,6 +59,7 @@ function payer_transaction_filters(){
     'username',
     'act',
     'status',
+    'items_per_page',
   );
 
   $filters = array_fill_keys($keys, NULL);
@@ -72,8 +73,7 @@ function payer_transaction_filters(){
  * @param $query
  *   A SelectQuery to which the filters should be applied.
  */
-function payer_build_filter_transactions_query(SelectQueryInterface $query) {
-  $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
+function payer_build_filter_transactions_query(SelectQueryInterface $query, $session) {
   // Build conditions query
   foreach ($session as $filter => $options) {
     if($filter == 'username') {
@@ -97,6 +97,8 @@ function payer_build_filter_transactions_query(SelectQueryInterface $query) {
  * @see payer_theme()
  */
 function payer_transactions_list() {
+  $session = isset($_SESSION['payer_transaction_overview_filter']) ? $_SESSION['payer_transaction_overview_filter'] : array();
+
   $header = array(
     array('data' => 'ID', 'field' => 'tid'),
     array('data' => 'User', 'field' => 'uid'),
@@ -123,10 +125,13 @@ function payer_transactions_list() {
       )
     )
     ->extend('PagerDefault')
-    ->limit(25)
+    ->limit(isset($session['items_per_page']) ? $session['items_per_page'] : 25)
     ->extend('TableSort')
-    ->orderByHeader($header);
-  payer_build_filter_transactions_query($query);
+    ->orderByHeader($header)
+    ->execute();
+
+  unset($session['items_per_page']);
+  payer_build_filter_transactions_query($query, $session);
   $transactions = $query->execute();
 
   $rows = array();
@@ -150,14 +155,17 @@ function payer_transactions_list() {
   }
   $filter_form = drupal_get_form('payer_transactions_list_filter_form');
 
-  $page_data = drupal_render($filter_form);
-  $page_data .= theme('table', array('header' => $header, 'rows' => $rows));
+  $page_form_filter = drupal_render($filter_form);
+  $page_data = theme('table', array('header' => $header, 'rows' => $rows));
   $page_data .= theme('pager');
 
 
   return theme(
     'payer_template_transactions_list',
-    array('page_data' => $page_data)
+    array(
+      'page_form_filter' => $page_form_filter,
+      'page_data' => $page_data,
+    )
   );
 }
 
@@ -233,6 +241,20 @@ function payer_transactions_list_filter_form($form) {
     ),
   );
 
+  $form['filters']['items']['filters']['items_per_page'] = array(
+    '#type' => 'select',
+    '#title' => t('Items per page'),
+    '#default_value' => isset($session['items_per_page'])  ? $session['items_per_page'] : 25,
+    '#options' => array(
+      10 => '10',
+      25 => '25',
+      50 => '50',
+      100 => '100',
+      250 => '250',
+      500 => '500',
+    ),
+  );
+
   $form['filters']['items']['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Filter'),
@@ -278,7 +300,10 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
  */
 
 /**
+ * Output all information about a transaction.
  *
+ * @see PayerTransaction
+ * @see payer_theme()
  */
 function payer_transaction_view($tid){
   $vars = array('tid'=>$tid);
@@ -287,14 +312,48 @@ function payer_transaction_view($tid){
   $transaction = $transaction->get_transaction();
 
   if($transaction) {
+    $page_data = array();
+
+    foreach ($transaction as $key => $data) {
+      switch ($key){
+        case 'uid':
+          $user = user_load($data);
+          $page_data['user']['label'] = t('User');
+          $page_data['user']['value'] = l($user->name, 'user/'.$data);
+          break;
+        case 'created':
+          $page_data['created']['label'] = t(ucfirst($key));
+          $page_data['created']['value'] = format_date($data, 'short');
+          break;
+        case 'act':
+          $page_data['act']['label'] = t(ucfirst($key));
+          $page_data['act']['value'] = $data?'Coming':'Spending';
+          break;
+        case 'status':
+          $page_data['status']['label'] = t(ucfirst($key));
+          $page_data['status']['value'] = $data?'Completed':'Waiting';
+          break;
+        case 'amount':
+          $page_data['amount']['label'] = t(ucfirst($key));
+          $page_data['amount']['value'] = $data;
+          $page_data['amount']['class'] = ' transaction-amount transaction-amount-'.$transaction['act'];
+          break;
+        default:
+          $page_data[$key]['label'] = t(ucfirst($key));
+          $page_data[$key]['value'] = $data;
+          break;
+      }
+    }
+
     return theme(
       'payer_template_transaction_view',
-      array('transaction' => $transaction)
+      array('page_data' => $page_data)
     );
   }
 
-  drupal_not_found();
+  return drupal_not_found();
 }
+
 
 /**
  * PAGE ADD TRANSACTION

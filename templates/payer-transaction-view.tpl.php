@@ -1,42 +1,33 @@
+<style>
+    .transaction-amount:before {
+        font-size: 20px;
+        vertical-align: top;
+    }
+    .transaction-amount-0:before {
+        content: '⬆ ';
+        color: #ed541d;
+    }
+    .transaction-amount-1:before {
+        content: '⬇ ';
+        color: #008000;
+    }
+</style>
 <table>
   <?php
   $i = 0;
-  foreach($transaction as $key => $data):
-    if($i % 2) {
-      $class = ' even';
-    }
-    else {
-      $class = ' odd';
-    }
-    ?>
+  foreach($page_data as $data):
+    if($i % 2) { $class = ' even'; }
+    else { $class = ' odd'; }
+  ?>
     <tr class="row <?php print $class; ?>">
       <th class="label" width="100">
-        <?php print $key; ?>
+        <?php print $data['label']; ?>
       </th>
-      <td class="item-data">
-        <?php
-        switch ($key){
-          case 'uid':
-            $user = user_load($data);
-            print $data. ' (' . l($user->name, 'user/'.$data) . ')';
-            break;
-          case 'created':
-            print format_date($data, 'short');
-            break;
-          case 'act':
-            print $data?'Coming':'Spending';
-            break;
-          case 'status':
-            print $data?'Completed':'Waiting';
-            break;
-          default:
-            print $data;
-            break;
-        }
-        ?>
+      <td class="item-data<?php isset($data['class']) ? print $data['class'] : NULL ?>">
+        <?php print $data['value']; ?>
       </td>
     </tr>
-    <?php
+  <?php
     $i++;
   endforeach;
   ?>

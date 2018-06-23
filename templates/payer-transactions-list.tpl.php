@@ -21,5 +21,6 @@
     }
   </style>
   <h2><?php print t('List of transactions'); ?></h2>
+  <?php print $page_form_filter; ?>
   <?php print $page_data; ?>
 </div>
