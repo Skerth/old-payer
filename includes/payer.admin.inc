@@ -340,8 +340,8 @@ function payer_transaction_view($tid){
           break;
         case 'info':
           $info = '';
-          foreach ($data as $key => $item) {
-            $info .= ucfirst($key). ': ';
+          foreach ($data as $key_item => $item) {
+            $info .= ucfirst($key_item). ': ';
             $info .= "$item; ";
           }
           $page_data['info']['label'] = t(ucfirst($key));

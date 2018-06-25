@@ -20,16 +20,17 @@ class PayerTransaction {
    *      in the form of a dot;
    *   - 'method': selected payment method. Plain text string.
    *      Example: Manual, Robokassa, PayPal;
-   *   - 'info': comment on the transaction or any other information.
-   *      Example: Manual, Robokassa, PayPal;
+   *   - 'info': array of values required for a specific payment method;
    *   - 'created': date of transaction creation. Should be in Unixtime.
    */
   private $data = [];
 
   /**
    * All properties of the current object. Contains the same list
-   * as @var array $data. To get the properties, you can call the
-   * method $this->get_transaction().
+   * as @var array $data.
+   *
+   * @see get_transaction().
+   *
    */
   private $transaction = [];
 
@@ -180,7 +181,7 @@ class PayerTransaction {
     $this->transaction['act'] = $this->data['act'];
     $this->transaction['amount'] = $this->data['amount'];
     $this->transaction['method'] = $this->data['method'];
-    $this->transaction['info'] = $this->data['info'];
+    $this->transaction['info'] = serialize($this->data['info']);
     $this->transaction['created'] = $this->data['created'];
 
     $tid = db_insert('payer_transactions')
