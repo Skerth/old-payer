@@ -338,10 +338,27 @@ function payer_transaction_view($tid){
           $page_data['amount']['value'] = $data;
           $page_data['amount']['class'] = ' transaction-amount transaction-amount-'.$transaction['act'];
           break;
+        case 'info':
+          $info = '';
+          foreach ($data as $key => $item) {
+            $info .= ucfirst($key). ': ';
+            $info .= "$item; ";
+          }
+          $page_data['info']['label'] = t(ucfirst($key));
+          $page_data['info']['value'] = $info;
+          break;
         default:
           $page_data[$key]['label'] = t(ucfirst($key));
           $page_data[$key]['value'] = $data;
           break;
+      }
+    }
+
+    if($page_data['status']['value'] == 'Waiting') {
+      $get_payment_link = 'payer_' . $transaction['method'] . '_get_payment_link';
+      if(function_exists($get_payment_link)) {
+        $page_data['payment_link']['label'] = 'Payment link';
+        $page_data['payment_link']['value'] = $get_payment_link($transaction);
       }
     }
 

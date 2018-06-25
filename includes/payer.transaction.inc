@@ -127,6 +127,8 @@ class PayerTransaction {
    * @return array $this->transaction.
    */
   public function get_transaction() {
+    $this->transaction['info'] = unserialize($this->transaction['info']);
+
     return $this->transaction;
   }
 
@@ -181,9 +183,11 @@ class PayerTransaction {
     $this->transaction['info'] = $this->data['info'];
     $this->transaction['created'] = $this->data['created'];
 
-    db_insert('payer_transactions')
+    $tid = db_insert('payer_transactions')
       ->fields($this->transaction)
       ->execute();
+
+    $this->transaction['tid'] = $tid;
   }
 
   /**

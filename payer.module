@@ -39,7 +39,7 @@ function payer_menu() {
     'description' => 'Configure Payer.',
     'type' => MENU_LOCAL_ACTION,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('payer_add_transaction'),
+    'page arguments' => array('payer_add_transaction_form'),
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
     'file' => 'includes/payer.admin.inc',
@@ -200,7 +200,12 @@ function payer_payment_submit($form, &$form_state)  {
   $method = $form_state['values']['methods'];
 
   $pay_handler = $method.'_handler';
-  $pay_handler($user->uid, $amount);
+  if(function_exists($pay_handler)) {
+    $pay_handler($user->uid, $amount);
+  }
+  else {
+    throw new Exception("Function \"$pay_handler\" not found!");
+  }
 }
 
 /**

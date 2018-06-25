@@ -52,13 +52,13 @@ function payer_schema() {
         'default' => 0,
         'description' => 'Time of transaction creation',
       ),
-      'info' => array(
+      'method' => array(
         'type' => 'varchar',
         'not null' => FALSE,
         'length' => 255,
         'default' => '',
       ),
-      'method' => array(
+      'info' => array(
         'type' => 'varchar',
         'not null' => FALSE,
         'length' => 255,
