@@ -6,6 +6,3 @@ package = "Payment"
 dependencies[] = payer
 
 configure = admin/config/payer/methods/robokassa
-
-files[] = robokassa.module
-files[] = robokassa.inc

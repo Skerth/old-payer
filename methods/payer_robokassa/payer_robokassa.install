@@ -12,6 +12,7 @@ function payer_robokassa_install() {
   variable_set('payer_robokassa_url_result', $url_result);
   variable_set('payer_robokassa_url_success', 'payer/robokassa/success');
   variable_set('payer_robokassa_url_fail', 'payer/robokassa/fail');
+  variable_set('payer_robokassa_currency', 'RUR');
 }
 
 /**
@@ -27,5 +28,6 @@ function payer_robokassa_uninstall() {
   variable_del('payer_robokassa_test_enabled');
   variable_del('payer_robokassa_test_password_1');
   variable_del('payer_robokassa_test_password_2');
+  variable_del('payer_robokassa_currency');
   drupal_flush_all_caches();
 }
