@@ -156,7 +156,7 @@ function payer_transactions_list() {
   $filter_form = drupal_get_form('payer_transactions_list_filter_form');
 
   $page_form_filter = drupal_render($filter_form);
-  $page_data = theme('table', array('header' => $header, 'rows' => $rows));
+  $page_data = theme('table', array('header' => $header, 'rows' => $rows, 'empty' => t('No transaction available.')));
   $page_data .= theme('pager');
 
 
