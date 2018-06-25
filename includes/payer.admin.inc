@@ -19,7 +19,7 @@ function payer_settings($form) {
   $form['payer_payment_url'] = array(
     '#type' => 'textfield',
     '#title' => t('Payment url'),
-    '#description' => t('Use a relative path and don\'t add a trailing slash or the URL won\'t work.'),
+    '#description' => t("Use a relative path and don't add a trailing slash or the URL won't work."),
     '#default_value' => variable_get('payer_payment_url'),
     '#required' => TRUE,
     '#maxlength' => 255,
@@ -38,7 +38,7 @@ function payer_settings($form) {
 function payer_settings_submit($form, &$form_state) {
   $payment_url = variable_get('payer_payment_url');
   // Если любой из url отличается, перестраиваем меню.
-  if($form_state['values']['payer_payment_url'] != $payment_url) {
+  if ($form_state['values']['payer_payment_url'] != $payment_url) {
     menu_rebuild();
     drupal_set_message(t('The menu has been rebuilt.'));
   }
@@ -53,7 +53,7 @@ function payer_settings_submit($form, &$form_state) {
  * Contains a list of possible transaction filters.
  * @return array $filters
  */
-function payer_transaction_filters(){
+function payer_transaction_filters() {
   $keys = array(
     'tid',
     'username',
@@ -76,14 +76,14 @@ function payer_transaction_filters(){
 function payer_build_filter_transactions_query(SelectQueryInterface $query, $session) {
   // Build conditions query
   foreach ($session as $filter => $options) {
-    if($filter == 'username') {
+    if ($filter == 'username') {
       $user = user_load_by_name($session['username']);
-      if($user != FALSE) {
+      if ($user != FALSE) {
         $query->condition('t.uid', $user->uid);
       }
     }
     else {
-      $query->condition('t.'.$filter, $session[$filter]);
+      $query->condition('t.' . $filter, $session[$filter]);
     }
   }
 }
@@ -137,17 +137,17 @@ function payer_transactions_list() {
   $rows = array();
   foreach ($transactions as $transaction) {
     $user = user_load($transaction->uid);
-    $user_link = l($user->name, url('user/'.$user->uid));
+    $user_link = l($user->name, url('user/' . $user->uid));
 
     $rows[] = array(
-      l($transaction->tid, url('admin/config/payer/transactions/'.$transaction->tid)),
+      l($transaction->tid, url('admin/config/payer/transactions/' . $transaction->tid)),
       $user_link,
       array(
         'data'  => $transaction->amount,
-        'class' => array('transaction-amount', 'transaction-amount-'.$transaction->act)
+        'class' => array('transaction-amount', 'transaction-amount-' . $transaction->act)
       ),
-      $transaction->act ? 'Coming':'Spending',
-      $transaction->status ? 'Completed':'Waiting',
+      $transaction->act ? 'Coming' : 'Spending',
+      $transaction->status ? 'Completed' : 'Waiting',
       $transaction->method,
       format_date($transaction->created, 'short'),
       $transaction->info,
@@ -260,7 +260,7 @@ function payer_transactions_list_filter_form($form) {
     '#value' => t('Filter'),
   );
 
-  if(count($session)) {
+  if (count($session)) {
     $form['filters']['items']['actions']['reset'] = array(
       '#type' => 'submit',
       '#value' => t('Reset'),
@@ -278,13 +278,13 @@ function payer_transactions_list_filter_form($form) {
  * @see payer_transaction_filters()
  */
 function payer_transactions_list_filter_form_submit($form, &$form_state) {
-  if($form_state['values']['op'] == t("Reset")) {
+  if ($form_state['values']['op'] == t("Reset")) {
     $_SESSION['payer_transaction_overview_filter'] = array();
   }
   else {
     $filters = payer_transaction_filters();
     foreach ($filters as $filter => $options) {
-      if($form_state['values'][$filter] != '' && $form_state['values'][$filter] != '[any]') {
+      if ($form_state['values'][$filter] != '' && $form_state['values'][$filter] != '[any]') {
         $_SESSION['payer_transaction_overview_filter'][$filter] = $form_state['values'][$filter];
       }
       else {
@@ -305,64 +305,64 @@ function payer_transactions_list_filter_form_submit($form, &$form_state) {
  * @see PayerTransaction
  * @see payer_theme()
  */
-function payer_transaction_view($tid){
-  $vars = array('tid'=>$tid);
+function payer_transaction_view($tid) {
+  $vars = array('tid' => $tid);
   $transaction = new PayerTransaction($vars);
   $transaction->transaction();
   $transaction = $transaction->get_transaction();
 
-  if($transaction) {
+  if ($transaction) {
     $page_data = array();
 
     foreach ($transaction as $key => $data) {
-      switch ($key){
+      switch ($key) {
         case 'uid':
           $user = user_load($data);
           $page_data['user']['label'] = t('User');
-          $page_data['user']['value'] = l($user->name, 'user/'.$data);
+          $page_data['user']['value'] = l($user->name, 'user/' . $data);
           break;
 
         case 'created':
-          $page_data['created']['label'] = t(ucfirst($key));
+          $page_data['created']['label'] = t('Created');
           $page_data['created']['value'] = format_date($data, 'short');
           break;
 
         case 'act':
-          $page_data['act']['label'] = t(ucfirst($key));
+          $page_data['act']['label'] = t('Act');
           $page_data['act']['value'] = $data?'Coming':'Spending';
           break;
 
         case 'status':
-          $page_data['status']['label'] = t(ucfirst($key));
+          $page_data['status']['label'] = t('Status');
           $page_data['status']['value'] = $data?'Completed':'Waiting';
           break;
 
         case 'amount':
-          $page_data['amount']['label'] = t(ucfirst($key));
+          $page_data['amount']['label'] = t('Amount');
           $page_data['amount']['value'] = $data;
-          $page_data['amount']['class'] = ' transaction-amount transaction-amount-'.$transaction['act'];
+          $page_data['amount']['class'] = ' transaction-amount transaction-amount-' . $transaction['act'];
           break;
 
         case 'info':
           $info = '';
           foreach ($data as $key_item => $item) {
-            $info .= ucfirst($key_item). ': ';
+            $info .= ucfirst($key_item) . ': ';
             $info .= "$item; ";
           }
-          $page_data['info']['label'] = t(ucfirst($key));
+          $page_data['info']['label'] = 'Info';
           $page_data['info']['value'] = $info;
           break;
 
         default:
-          $page_data[$key]['label'] = t(ucfirst($key));
+          $page_data[$key]['label'] = ucfirst($key);
           $page_data[$key]['value'] = $data;
           break;
       }
     }
 
-    if($page_data['status']['value'] == 'Waiting') {
+    if ($page_data['status']['value'] == 'Waiting') {
       $get_payment_link = 'payer_' . $transaction['method'] . '_get_payment_link';
-      if(function_exists($get_payment_link)) {
+      if (function_exists($get_payment_link)) {
         $page_data['payment_link']['label'] = 'Payment link';
         $page_data['payment_link']['value'] = $get_payment_link($transaction);
       }
@@ -468,7 +468,7 @@ function payer_add_transaction_form_validate($form, &$form_state) {
     form_set_error('payer_transaction_username', t('User not found.'));
   }
 
-  if(!empty($amount)) {
+  if (!empty($amount)) {
     // Class PayerTransaction is in the file "includes/payer.transaction.inc".
     $balance = PayerTransaction::get_user_balance($user);
     $sum_balance = PayerTransaction::calc_sum_balance($act, $balance, $amount);
@@ -488,7 +488,7 @@ function payer_add_transaction_form_validate($form, &$form_state) {
 function payer_add_transaction_form_submit($form, &$form_state) {
   $username = $form_state['values']['payer_transaction_username'];
 
-  if(!empty($username)) {
+  if (!empty($username)) {
     $user = user_load_by_name($form_state['values']['payer_transaction_username']);
   }
   else {
@@ -501,7 +501,7 @@ function payer_add_transaction_form_submit($form, &$form_state) {
   $vars['act'] = $form_state['values']['payer_transaction_act'];
 
   $vars['amount'] = $form_state['values']['payer_transaction_amount'];
-  $vars['amount'] = number_format($vars['amount'], 2,'.', '');
+  $vars['amount'] = number_format($vars['amount'], 2, '.', '');
 
   $vars['method'] = $form_state['values']['payer_transaction_method'];
   $vars['info'] = $form_state['values']['payer_transaction_info'];
@@ -538,7 +538,7 @@ function payer_methods_list() {
    * Preparation of information on cash payment methods
    * in the folder "payer/methods"
    */
-  foreach($existing_methods as $pay_method) {
+  foreach ($existing_methods as $pay_method) {
     $options = array(
       'config_link' => NULL, // ссылка на конфиг метода оплаты.
       'method_name' => NULL, // системное название метода.
@@ -552,7 +552,7 @@ function payer_methods_list() {
     $options['method_name'] = $pay_method->name;
     $options['status'] = module_exists($options['method_name']) ? TRUE : FALSE;
 
-    if(!$options['status']) {
+    if (!$options['status']) {
       $options['description'] .= '<div class="messages warning">';
       $options['description'] .= t(
         'The payment method &quot;@pay_method&quot; is installed, but it is off. To use the module functionality, enable it on the !page_modules under &quot;Payment&quot;',
@@ -565,13 +565,13 @@ function payer_methods_list() {
       $options['status'] = '🚫';
     }
     else {
-      $options['config_link'] = l('Config', $options['info']['configure']);
+      $options['config_link'] = l(t('Config'), $options['info']['configure']);
       $options['status'] = '✅';
     }
 
     $options['image'] = drupal_get_path('module', $options['method_name']) . '/preview.png';
 
-    if(file_exists($options['image'])) {
+    if (file_exists($options['image'])) {
       $options['image'] = theme('image', array('path' => $options['image']));
     }
     else {
@@ -596,9 +596,10 @@ function payer_methods_list() {
     );
   }
 
-  usort($rows, function($a, $b){
-    if($a['data'][0]['data'] === $b['data'][0]['data'])
+  usort($rows, function($a, $b) {
+    if ($a['data'][0]['data'] === $b['data'][0]['data']) {
       return 0;
+    }
 
     return $a['data'][0]['data'] > $b['data'][0]['data'] ? 1 : -1;
   });

@@ -53,7 +53,7 @@ class PayerTransaction {
 
   public function __construct($vars) {
     $this->data = $vars;
-    if(!isset($this->data['info'])) {
+    if (!isset($this->data['info'])) {
       $this->data['info'] = array();
     }
   }
@@ -74,7 +74,7 @@ class PayerTransaction {
     if (isset($this->data['tid'])) {
       // If the transaction has not yet been loaded into the properties
       // of the object
-      if(empty($this->transaction)) {
+      if (empty($this->transaction)) {
         $this->transaction = $this->load_transaction(); // download.
       }
 
@@ -100,7 +100,7 @@ class PayerTransaction {
    *        Can be "0" (Waiting) or "1" (Completed).
    */
   public function set_transaction_status($status) {
-    if(!empty($status)) {
+    if (!empty($status)) {
       $this->data['status'] = $status;
     }
   }
