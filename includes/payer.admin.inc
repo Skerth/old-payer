@@ -440,8 +440,8 @@ function payer_add_transaction_form($form) {
     '#value' => t('Create transaction'),
   );
 
-  $form['#validate'] = array('payer_add_transaction_validate');
-  $form['#submit'] = array('payer_add_transaction_submit');
+  $form['#validate'] = array('payer_add_transaction_form_validate');
+  $form['#submit'] = array('payer_add_transaction_form_submit');
 
   return $form;
 }
