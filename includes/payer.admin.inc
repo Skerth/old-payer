@@ -15,7 +15,7 @@
  *
  * @see payer_settings_submit()
  */
-function payer_settings($form) {
+function payer_settings_form($form) {
   $form['payer_payment_url'] = array(
     '#type' => 'textfield',
     '#title' => t('Payment url'),
@@ -25,7 +25,7 @@ function payer_settings($form) {
     '#maxlength' => 255,
   );
   $form = system_settings_form($form);
-  array_unshift($form['#submit'], 'payer_settings_submit');
+  array_unshift($form['#submit'], 'payer_settings_form_submit');
 
   return $form;
 }
@@ -35,7 +35,7 @@ function payer_settings($form) {
  *
  * @see payer_settings()
  */
-function payer_settings_submit($form, &$form_state) {
+function payer_settings_form_submit($form, &$form_state) {
   $payment_url = variable_get('payer_payment_url');
   // Если любой из url отличается, перестраиваем меню.
   if ($form_state['values']['payer_payment_url'] != $payment_url) {

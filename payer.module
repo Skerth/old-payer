@@ -60,7 +60,7 @@ function payer_menu() {
     'description' => 'Configure Payer.',
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('payer_settings'),
+    'page arguments' => array('payer_settings_form'),
     'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
     'weight' => '-49',
