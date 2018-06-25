@@ -230,7 +230,7 @@ function payer_robokassa_handler($uid, $amount) {
     'amount' => $amount,
     'created' => REQUEST_TIME,
     'method' => 'robokassa',
-    'info' => serialize(array('currency' => $currency)),
+    'info' => array('currency' => $currency),
   );
 
   $refill = new PayerTransaction($vars);
