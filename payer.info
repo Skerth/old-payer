@@ -6,7 +6,6 @@ package = "Payment"
 dependencies[] = node
 dependencies[] = number
 dependencies[] = list
-dependencies[] = views
 
 configure = admin/config/payer
 
