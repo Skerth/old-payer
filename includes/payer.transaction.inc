@@ -53,6 +53,9 @@ class PayerTransaction {
 
   public function __construct($vars) {
     $this->data = $vars;
+    if(!isset($this->data['info'])) {
+      $this->data['info'] = array();
+    }
   }
 
   /**
