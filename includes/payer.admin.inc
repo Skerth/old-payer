@@ -321,23 +321,28 @@ function payer_transaction_view($tid){
           $page_data['user']['label'] = t('User');
           $page_data['user']['value'] = l($user->name, 'user/'.$data);
           break;
+
         case 'created':
           $page_data['created']['label'] = t(ucfirst($key));
           $page_data['created']['value'] = format_date($data, 'short');
           break;
+
         case 'act':
           $page_data['act']['label'] = t(ucfirst($key));
           $page_data['act']['value'] = $data?'Coming':'Spending';
           break;
+
         case 'status':
           $page_data['status']['label'] = t(ucfirst($key));
           $page_data['status']['value'] = $data?'Completed':'Waiting';
           break;
+
         case 'amount':
           $page_data['amount']['label'] = t(ucfirst($key));
           $page_data['amount']['value'] = $data;
           $page_data['amount']['class'] = ' transaction-amount transaction-amount-'.$transaction['act'];
           break;
+
         case 'info':
           $info = '';
           foreach ($data as $key_item => $item) {
@@ -347,6 +352,7 @@ function payer_transaction_view($tid){
           $page_data['info']['label'] = t(ucfirst($key));
           $page_data['info']['value'] = $info;
           break;
+
         default:
           $page_data[$key]['label'] = t(ucfirst($key));
           $page_data[$key]['value'] = $data;
