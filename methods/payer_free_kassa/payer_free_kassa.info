@@ -1,8 +1,0 @@
-name = Free Kassa
-description = Free Kassa gate.
-core = 7.x
-version = "7.x-1.0"
-package = "Payment"
-dependencies[] = payer
-
-configure = admin/config/payer/free-kassa

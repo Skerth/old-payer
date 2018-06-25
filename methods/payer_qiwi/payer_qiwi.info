@@ -1,8 +1,0 @@
-name = QIWI
-description = QIWI gate.
-core = 7.x
-version = "7.x-1.0"
-package = "Payment"
-dependencies[] = payer
-
-configure = admin/config/payer/qiwi
